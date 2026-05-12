@@ -4,8 +4,7 @@
   "downloadUrl": "https://raw.githubusercontent.com/ypd11/podmixamusic/main/latest/podmix.exe",
   "changelog": [
     "Initial release version.",
-    "Modern UI implementation.",
-    "High-quality audio streaming support.",
+    "Online radio streaming support.",
     "Bug fixes and performance improvements."
   ]
 }
