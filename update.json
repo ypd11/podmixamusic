@@ -2,6 +2,10 @@
   "updateAvailable": true,
   "version": "1.0",
   "downloadUrl": "https://raw.githubusercontent.com/ypd11/podmixamusic/main/latest/podmix.exe",
-  "changelog": "Initial release version. Basic functionalities."
+  "changelog": [
+    "Initial release version.",
+    "Modern UI implementation.",
+    "High-quality audio streaming support.",
+    "Bug fixes and performance improvements."
+  ]
 }
-
