@@ -53,7 +53,7 @@ namespace WindowsShuffle
 		private static readonly HttpClient httpClient = new HttpClient();
         private double _playerVolume = 0.5;
         private const string DefaultThemeColor = "#34495e";
-
+        private SplashWindow _splashWindow;
         private bool _isAppJustStarted = true;
         private bool _isFirstLoad = true;
         private bool _startupWindowRevealed = false;
@@ -126,6 +126,8 @@ namespace WindowsShuffle
         private SYNCPROC _metaSync;
         private const int StartupBootExitDelayMs = 160;
         private const int StartupBootExitDurationMs = 260;
+        private const int StartupBootMinimumVisibleMs = 1800;
+        private DateTime _bootViewIntroStartedAt;
         private string _lastRadioMetadata = string.Empty;
         private string RadioRecentPath => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PodmixMusic", "radio_recent.json");
         private DispatcherTimer _radioMonitorTimer;
@@ -204,15 +206,18 @@ namespace WindowsShuffle
             return EnsureBassDeviceReady(_selectedBassDevice);
         }
 
-        //public class AppSettings
-        //{
-        //    public bool IsBackView { get; set; }
-        //}
-
         public MainWindow()
         {
+            _splashWindow = new SplashWindow();
+            _splashWindow.Show();
+            _splashWindow.Activate();
+
             RegisterBassNet();
             InitializeComponent();
+
+            // Make sure the actual player remains the application's main window.
+            Application.Current.MainWindow = this;
+
             NameScope.SetNameScope(this, new NameScope());
             RegisterName("PodmixMusicInstance", this);            
             _startupFilePath = GetStartupAudioFilePath();
@@ -231,25 +236,44 @@ namespace WindowsShuffle
                 CheckScreenSleepTimeout();
             };
 
+            //LoadViewState();
+            //if (string.IsNullOrWhiteSpace(colorHex))
+            //    ApplyThemeColor(DefaultThemeColor);
+            //InitializeStartupWindowPlacement();
+            //HoldStartupDeviceUntilColorReady();
+
+            //StartBootViewIntro();
+            //ContentRendered += MainWindow_ContentRendered;
+
             LoadViewState();
             if (string.IsNullOrWhiteSpace(colorHex))
                 ApplyThemeColor(DefaultThemeColor);
             InitializeStartupWindowPlacement();
             HoldStartupDeviceUntilColorReady();
 
-            StartBootViewIntro();
             ContentRendered += MainWindow_ContentRendered;
         }
+
+        //private void InitializeStartupWindowPlacement()
+        //{
+        //    WindowStartupLocation = WindowStartupLocation.Manual;
+        //    DockWindowToTaskbarRight();
+
+        //    if (_delayStartupWindowRevealForAlbumColor)
+        //    {
+        //        Opacity = 0;
+        //    }
+        //}
 
         private void InitializeStartupWindowPlacement()
         {
             WindowStartupLocation = WindowStartupLocation.Manual;
             DockWindowToTaskbarRight();
 
-            if (_delayStartupWindowRevealForAlbumColor)
-            {
-                Opacity = 0;
-            }
+            // Keep the main player hidden until initialization finishes.
+            Opacity = 0;
+            ShowInTaskbar = false;
+            IsHitTestVisible = false;
         }
 
         private bool IsExtractAlbumCoverColorEnabled()
@@ -305,6 +329,8 @@ namespace WindowsShuffle
             catch (Exception ex)
             {
                 Debug.WriteLine($"Startup initialization failed: {ex.Message}");
+                // Don't leave the user stuck on the splash screen.
+                RevealStartupWindow();
             }
         }
 
@@ -816,18 +842,18 @@ namespace WindowsShuffle
             return shuffleOrder[0] >= 0 && shuffleOrder[0] < playlist.Count;
         }
 
-        private bool StartQueuedStartupPlaybackIfReady()
-        {
-            if (!_playRequestedDuringStartup || isPlaying)
-                return false;
+        //private bool StartQueuedStartupPlaybackIfReady()
+        //{
+        //    if (!_playRequestedDuringStartup || isPlaying)
+        //        return false;
 
-            if (!EnsurePlayableCurrentIndex())
-                return false;
+        //    if (!EnsurePlayableCurrentIndex())
+        //        return false;
 
-            _playRequestedDuringStartup = false;
-            PlayCurrent();
-            return true;
-        }
+        //    _playRequestedDuringStartup = false;
+        //    PlayCurrent();
+        //    return true;
+        //}
 
         private async Task<bool> StartQueuedStartupPlaybackIfReadyAsync()
         {
@@ -1277,6 +1303,8 @@ namespace WindowsShuffle
 
         private void StartBootViewIntro()
         {
+            _bootViewIntroStartedAt = DateTime.UtcNow;
+
             TxtBootTitle.Text = "Podmix";
             TxtBootSubtitle.Text = "Welcome";
             BootView.Visibility = Visibility.Visible;
@@ -1300,13 +1328,24 @@ namespace WindowsShuffle
             BootViewScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleIn.Clone());
         }
 
-        private void HideBootViewToPlayer()
+        private async void HideBootViewToPlayer()
         {
-            RevealStartupDevice();
-            ShowLockScreen();
-
             if (BootView.Visibility != Visibility.Visible)
                 return;
+
+            // Ensure the welcome screen remains visible for at least 1.8 seconds.
+            int elapsedMs = (int)(DateTime.UtcNow - _bootViewIntroStartedAt).TotalMilliseconds;
+            int remainingMs = StartupBootMinimumVisibleMs - elapsedMs;
+
+            if (remainingMs > 0)
+                await Task.Delay(remainingMs);
+
+            // Check again in case the boot view was hidden while waiting.
+            if (BootView.Visibility != Visibility.Visible)
+                return;
+
+            RevealStartupDevice();
+            ShowLockScreen();
 
             BootView.BeginAnimation(UIElement.OpacityProperty, null);
             BootViewScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
@@ -1348,7 +1387,21 @@ namespace WindowsShuffle
                 return;
 
             _startupWindowRevealed = true;
+
+            // Close the splash screen.
+            if (_splashWindow != null)
+            {
+                _splashWindow.StopLoadingTimer();
+                _splashWindow.Close();
+                _splashWindow = null;
+            }
+
             ShowInTaskbar = true;
+            IsHitTestVisible = true;
+
+            // Start the welcome animation only when the main window
+            // is ready to become visible.
+            StartBootViewIntro();
 
             if (!_delayStartupWindowRevealForAlbumColor)
             {
@@ -1358,8 +1411,12 @@ namespace WindowsShuffle
 
             var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
             {
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                EasingFunction = new QuadraticEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
             };
+
             BeginAnimation(Window.OpacityProperty, fadeIn);
         }
 
@@ -2326,6 +2383,8 @@ namespace WindowsShuffle
         {
             if (string.IsNullOrWhiteSpace(Root) || Root == "null" || !Directory.Exists(Root))
                 return false;
+
+            ShowPlaylistLoading();
 
             var rootFiles = await GetAudioFilesFromFolderAsync(Root, SearchOption.AllDirectories);
             return await ReplacePlaylistWithFiles(rootFiles, Root, autoPlayWhenEmpty);
@@ -6442,8 +6501,18 @@ namespace WindowsShuffle
             }
         }
 
+        private void ShowPlaylistLoading()
+        {
+            //ClearAlbumArt();
+            TxtTitle.Text = "♪ Preparing your music...";
+            TxtArtist.Text = "";
+            TxtAlbum.Text = "";
+        }
+
         private async void LoadPlaylistByPath(string jsonPath)
         {
+            ShowPlaylistLoading();
+
             try
             {
                 string json = File.ReadAllText(jsonPath);
