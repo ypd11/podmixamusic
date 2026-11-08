@@ -103,6 +103,9 @@ namespace WindowsShuffle
         private string _temCachedLyricsText = null;
         private bool _isShuttingDown = false;
         private readonly List<CoverFlowAlbum> _coverFlowAlbums = new List<CoverFlowAlbum>();
+        private const int CoverFlowArtworkCacheLimit = 5;
+        private readonly Dictionary<string, ImageSource> _coverFlowArtworkCache = new Dictionary<string, ImageSource>(StringComparer.OrdinalIgnoreCase);
+        private readonly LinkedList<string> _coverFlowArtworkCacheOrder = new LinkedList<string>();
         private int _coverFlowIndex = 0;
         private bool _isCoverFlowLoading = false;
         private bool _isCoverFlowReady = false;
@@ -5915,9 +5918,11 @@ namespace WindowsShuffle
                             TrackNumber = file.Tag.Track
                         });
 
-                        if (album.Art == null && file.Tag.Pictures.Length > 0)
+                        // Remember the exact track that contains embedded artwork.
+                        // Decode the image later, only when this album is visible in Cover Flow.
+                        if (string.IsNullOrEmpty(album.CoverArtPath) && file.Tag.Pictures.Length > 0)
                         {
-                            album.Art = CreateImageSource(file.Tag.Pictures[0].Data.Data);
+                            album.CoverArtPath = path;
                         }
                     }
                 }
@@ -6026,7 +6031,58 @@ namespace WindowsShuffle
             }
 
             int wrappedIndex = (index + _coverFlowAlbums.Count) % _coverFlowAlbums.Count;
-            image.Source = _coverFlowAlbums[wrappedIndex].Art ?? GetCoverFlowFallbackArt();
+            CoverFlowAlbum album = _coverFlowAlbums[wrappedIndex];
+
+            image.Source = GetCoverFlowArtwork(album) ?? GetCoverFlowFallbackArt();
+        }
+
+        private ImageSource GetCoverFlowArtwork(CoverFlowAlbum album)
+        {
+            if (album == null || string.IsNullOrWhiteSpace(album.CoverArtPath))
+                return null;
+
+            string path = album.CoverArtPath;
+            ImageSource cachedImage;
+
+            if (_coverFlowArtworkCache.TryGetValue(path, out cachedImage))
+            {
+                _coverFlowArtworkCacheOrder.Remove(path);
+                _coverFlowArtworkCacheOrder.AddLast(path);
+                return cachedImage;
+            }
+
+            try
+            {
+                using (var file = TagLib.File.Create(path))
+                {
+                    if (file.Tag.Pictures == null || file.Tag.Pictures.Length == 0)
+                        return null;
+
+                    ImageSource artwork = CreateImageSource(file.Tag.Pictures[0].Data.Data);
+                    if (artwork == null)
+                        return null;
+
+                    _coverFlowArtworkCache[path] = artwork;
+                    _coverFlowArtworkCacheOrder.AddLast(path);
+
+                    // Keep only the five most recently used decoded covers.
+                    while (_coverFlowArtworkCacheOrder.Count > CoverFlowArtworkCacheLimit)
+                    {
+                        string oldestPath = _coverFlowArtworkCacheOrder.First.Value;
+                        _coverFlowArtworkCacheOrder.RemoveFirst();
+                        _coverFlowArtworkCache.Remove(oldestPath);
+                    }
+
+                    return artwork;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    "Cover Flow artwork load error: " + ex.Message);
+
+                return null;
+            }
         }
 
         private ImageSource _coverFlowFallbackArt;
@@ -8485,7 +8541,7 @@ namespace WindowsShuffle
     {
         public string AlbumName { get; set; }
         public string Artist { get; set; }
-        public ImageSource Art { get; set; }
+        public string CoverArtPath { get; set; }
         public List<CoverFlowTrack> Tracks { get; } = new List<CoverFlowTrack>();
     }
 
