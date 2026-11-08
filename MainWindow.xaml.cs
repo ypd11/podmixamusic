@@ -5762,6 +5762,39 @@ namespace WindowsShuffle
             await ShowCoverFlowAsync();
         }
 
+        //private async void BeginCoverFlowBackgroundScan()
+        //{
+        //    if (_isCoverFlowLoading) return;
+
+        //    MenuCoverFlow.Visibility = Visibility.Collapsed;
+        //    MenuCoverFlow.IsEnabled = false;
+        //    _isCoverFlowReady = false;
+
+        //    if (string.IsNullOrEmpty(Root) || !Directory.Exists(Root))
+        //        return;
+
+        //    _isCoverFlowLoading = true;
+
+        //    try
+        //    {
+        //        var albums = await Task.Run(() => ScanCoverFlowAlbums(Root));
+        //        _coverFlowAlbums.Clear();
+        //        _coverFlowAlbums.AddRange(albums);
+        //        _coverFlowIndex = 0;
+        //        _isCoverFlowReady = _coverFlowAlbums.Count > 0;
+
+        //        MenuCoverFlow.Visibility = _isCoverFlowReady ? Visibility.Visible : Visibility.Collapsed;
+        //        MenuCoverFlow.IsEnabled = _isCoverFlowReady;
+
+        //        if (isCoverFlowMode)
+        //            UpdateCoverFlowUI();
+        //    }
+        //    finally
+        //    {
+        //        _isCoverFlowLoading = false;
+        //    }
+        //}
+
         private async void BeginCoverFlowBackgroundScan()
         {
             if (_isCoverFlowLoading) return;
@@ -5778,16 +5811,30 @@ namespace WindowsShuffle
             try
             {
                 var albums = await Task.Run(() => ScanCoverFlowAlbums(Root));
+
                 _coverFlowAlbums.Clear();
                 _coverFlowAlbums.AddRange(albums);
+
                 _coverFlowIndex = 0;
                 _isCoverFlowReady = _coverFlowAlbums.Count > 0;
 
-                MenuCoverFlow.Visibility = _isCoverFlowReady ? Visibility.Visible : Visibility.Collapsed;
+                MenuCoverFlow.Visibility = _isCoverFlowReady
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
                 MenuCoverFlow.IsEnabled = _isCoverFlowReady;
 
                 if (isCoverFlowMode)
                     UpdateCoverFlowUI();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    "Cover Flow scan error: " + ex.Message);
+
+                _isCoverFlowReady = false;
+                MenuCoverFlow.Visibility = Visibility.Collapsed;
+                MenuCoverFlow.IsEnabled = false;
             }
             finally
             {
@@ -5886,23 +5933,58 @@ namespace WindowsShuffle
                          .ToList();
         }
 
+        //private ImageSource CreateImageSource(byte[] data)
+        //{
+        //    try
+        //    {
+        //        using (var stream = new MemoryStream(data))
+        //        {
+        //            var image = new BitmapImage();
+        //            image.BeginInit();
+        //            image.CacheOption = BitmapCacheOption.OnLoad;
+        //            image.StreamSource = stream;
+        //            image.EndInit();
+        //            image.Freeze();
+        //            return image;
+        //        }
+        //    }
+        //    catch
+        //    {
+        //        return null;
+        //    }
+        //}
+
         private ImageSource CreateImageSource(byte[] data)
         {
+            if (data == null || data.Length == 0)
+                return null;
+
             try
             {
                 using (var stream = new MemoryStream(data))
                 {
                     var image = new BitmapImage();
+
                     image.BeginInit();
+
+                    // Decode smaller images to reduce memory usage
+                    image.DecodePixelWidth = 256;
+
+                    // Release the stream after decoding
                     image.CacheOption = BitmapCacheOption.OnLoad;
                     image.StreamSource = stream;
+
                     image.EndInit();
                     image.Freeze();
+
                     return image;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine(
+                    "Cover artwork error: " + ex.Message);
+
                 return null;
             }
         }
