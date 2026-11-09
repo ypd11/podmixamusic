@@ -4610,6 +4610,8 @@ namespace WindowsShuffle
             TipTitle.Text = TxtTitle.Text;
             TipArtist.Text = TxtArtist.Text;
             TipAlbum.Text = TxtAlbum.Text;
+
+            this.Title = $"{TxtTitle.Text} - {TxtArtist.Text} | Podmix";
         }
 
         private void ClearAlbumArt()
