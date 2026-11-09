@@ -79,6 +79,9 @@ namespace WindowsShuffle
         private DispatcherTimer _lockClockTimer = new DispatcherTimer();
         private DispatcherTimer _screenSleepTimer = new DispatcherTimer();
         private DispatcherTimer _bootGifTimer;
+        private DispatcherTimer _audioDiagnosticTimer;
+        private string AudioDiagnosticLogPath =>
+            Path.Combine(Path.GetTempPath(), "PodmixAudioDiagnostics.log");
         private readonly List<BitmapSource> _bootGifFrames = new List<BitmapSource>();
         private readonly List<int> _bootGifFrameDelays = new List<int>();
         private int _bootGifFrameIndex = 0;
@@ -227,6 +230,8 @@ namespace WindowsShuffle
             timer.Interval = TimeSpan.FromSeconds(1);
             timer.Tick += Timer_Tick;
 
+            InitAudioDiagnosticMonitor();
+
             _lockClockTimer.Interval = TimeSpan.FromSeconds(30);
             _lockClockTimer.Tick += (s, e) => UpdateLockScreenInfo();
 
@@ -235,15 +240,6 @@ namespace WindowsShuffle
             {
                 CheckScreenSleepTimeout();
             };
-
-            //LoadViewState();
-            //if (string.IsNullOrWhiteSpace(colorHex))
-            //    ApplyThemeColor(DefaultThemeColor);
-            //InitializeStartupWindowPlacement();
-            //HoldStartupDeviceUntilColorReady();
-
-            //StartBootViewIntro();
-            //ContentRendered += MainWindow_ContentRendered;
 
             LoadViewState();
             if (string.IsNullOrWhiteSpace(colorHex))
@@ -7318,6 +7314,74 @@ namespace WindowsShuffle
                     _notifyIcon.Text = $"{truncatedDetails}{Ellipsis}{Branding}";
                 }
             }
+        }
+
+        private void InitAudioDiagnosticMonitor()
+        {
+            if (_audioDiagnosticTimer != null)
+                return;
+
+            _audioDiagnosticTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(3)
+            };
+
+            _audioDiagnosticTimer.Tick += (s, e) =>
+            {
+                if (isRadioMode || !isPlaying || _localHandle == 0)
+                    return;
+
+                try
+                {
+                    int currentDevice = Bass.BASS_GetDevice();
+
+                    BASSActive status =
+                        Bass.BASS_ChannelIsActive(_localHandle);
+
+                    long positionBytes =
+                        Bass.BASS_ChannelGetPosition(_localHandle);
+
+                    double positionSeconds =
+                        Bass.BASS_ChannelBytes2Seconds(
+                            _localHandle, positionBytes);
+
+                    string deviceName = "Unknown";
+                    string deviceFlags = "Unknown";
+
+                    BASS_DEVICEINFO info =
+                        Bass.BASS_GetDeviceInfo(currentDevice);
+
+                    if (info != null)
+                    {
+                        deviceName = info.name ?? "Unknown";
+                        deviceFlags = info.flags.ToString();
+                    }
+
+                    string logEntry =
+                        $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} | " +
+                        $"Playing={isPlaying} | " +
+                        $"StreamStatus={status} | " +
+                        $"Position={positionSeconds:F2}s | " +
+                        $"Handle={_localHandle} | " +
+                        $"SelectedDevice={_selectedBassDevice} | " +
+                        $"CurrentDevice={currentDevice} | " +
+                        $"Device={deviceName} | " +
+                        $"DeviceFlags={deviceFlags} | " +
+                        $"Volume={GetEffectiveBassVolume():F2} | " +
+                        $"BASSError={Bass.BASS_ErrorGetCode()}";
+
+                    File.AppendAllText(
+                        AudioDiagnosticLogPath,
+                        logEntry + Environment.NewLine);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(
+                        "Audio diagnostic error: " + ex.Message);
+                }
+            };
+
+            _audioDiagnosticTimer.Start();
         }
 
         private void InitRadioMonitor()
