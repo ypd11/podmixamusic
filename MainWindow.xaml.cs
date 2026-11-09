@@ -250,17 +250,6 @@ namespace WindowsShuffle
             ContentRendered += MainWindow_ContentRendered;
         }
 
-        //private void InitializeStartupWindowPlacement()
-        //{
-        //    WindowStartupLocation = WindowStartupLocation.Manual;
-        //    DockWindowToTaskbarRight();
-
-        //    if (_delayStartupWindowRevealForAlbumColor)
-        //    {
-        //        Opacity = 0;
-        //    }
-        //}
-
         private void InitializeStartupWindowPlacement()
         {
             WindowStartupLocation = WindowStartupLocation.Manual;
@@ -7338,6 +7327,16 @@ namespace WindowsShuffle
                     BASSActive status =
                         Bass.BASS_ChannelIsActive(_localHandle);
 
+                    int audioLevel = Bass.BASS_ChannelGetLevel(_localHandle);
+
+                    int leftLevel = audioLevel == -1
+                        ? -1
+                        : audioLevel & 0xFFFF;
+
+                    int rightLevel = audioLevel == -1
+                        ? -1
+                        : (audioLevel >> 16) & 0xFFFF;
+
                     long positionBytes =
                         Bass.BASS_ChannelGetPosition(_localHandle);
 
@@ -7361,6 +7360,9 @@ namespace WindowsShuffle
                         $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} | " +
                         $"Playing={isPlaying} | " +
                         $"StreamStatus={status} | " +
+                        $"AudioLevel={audioLevel} | " +
+                        $"Left={leftLevel} | " +
+                        $"Right={rightLevel} | " +
                         $"Position={positionSeconds:F2}s | " +
                         $"Handle={_localHandle} | " +
                         $"SelectedDevice={_selectedBassDevice} | " +
