@@ -2411,9 +2411,14 @@ namespace WindowsShuffle
             return true;
         }
 
-        private async Task<bool> ReplacePlaylistWithFiles(IEnumerable<string> files, string sourceFolder, bool autoPlayWhenEmpty = true)
+        private async Task<bool> ReplacePlaylistWithFiles(
+            IEnumerable<string> files,
+            string sourceFolder,
+            bool autoPlayWhenEmpty = true)
         {
-            var validFiles = GetExistingAudioFiles(files);
+            var validFiles = await Task.Run(() =>
+                GetExistingAudioFiles(files));
+
             if (validFiles.Count == 0)
                 return false;
 
@@ -2422,10 +2427,15 @@ namespace WindowsShuffle
             shuffleOrder.Clear();
             currentIndex = 0;
 
-            bool loaded = await AddToPlaylist(validFiles.ToArray(), autoPlayWhenEmpty);
-            if (!loaded) return false;
+            bool loaded = await AddToPlaylist(
+                validFiles.ToArray(),
+                autoPlayWhenEmpty);
 
-            if (!string.IsNullOrWhiteSpace(sourceFolder) && Directory.Exists(sourceFolder))
+            if (!loaded)
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(sourceFolder) &&
+                Directory.Exists(sourceFolder))
             {
                 RememberFolderPlaylist(sourceFolder);
                 InitializeLibraryWatcher(sourceFolder);

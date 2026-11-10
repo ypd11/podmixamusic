@@ -1,0 +1,1634 @@
+<Window x:Class="WindowsShuffle.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStartupLocation="Manual"
+        Title="Podmix" 
+        SizeToContent="WidthAndHeight" 
+        WindowStyle="None" 
+        AllowsTransparency="True" 
+        Background="Transparent"
+        ResizeMode="NoResize"
+        AllowDrop="True" 
+        Drop="Window_Drop"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        PreviewMouseDown="Window_PreviewMouseDown"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        Loaded="Window_Loaded"
+        MouseWheel="Window_MouseWheel">
+
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo>
+            <TaskbarItemInfo.ThumbButtonInfos>
+
+                <ThumbButtonInfo
+                x:Name="BtnPrev"
+                Description="Previous"
+                Click="Taskbar_PrevClick"/>
+
+                <ThumbButtonInfo
+                x:Name="BtnPlayPause"
+                Description="Play"
+                Click="Taskbar_PlayPauseClick"/>
+
+                <ThumbButtonInfo
+                x:Name="BtnNext"
+                Description="Next"
+                Click="Taskbar_NextClick"/>
+
+            </TaskbarItemInfo.ThumbButtonInfos>
+        </TaskbarItemInfo>
+    </Window.TaskbarItemInfo>
+
+    <Window.Resources>
+        <LinearGradientBrush x:Key="IpodMetalBrush" x:Name="DynamicIpodBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#5c6d7e" Offset="0.0"/>
+            <GradientStop Color="#34495e" Offset="1.0"/>
+        </LinearGradientBrush>        
+
+        <Style x:Key="WheelButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#555"/>
+            <Setter Property="BorderThickness" Value="0"/> 
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PasscodeButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="4,1"/>
+            <Setter Property="Background" Value="#22FFFFFF"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="PasscodeButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="13"
+                                BorderBrush="#22FFFFFF"
+                                BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="PasscodeButtonBorder" Property="Background" Value="#3AFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="PasscodeButtonBorder" Property="Background" Value="#55FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 1. Custom Minimalist ScrollBar -->
+        <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid x:Name="Bg" Background="{TemplateBinding Background}" SnapsToDevicePixels="true">
+                            <Track x:Name="PART_Track" IsDirectionReversed="true" IsEnabled="{TemplateBinding IsEnabled}">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Border Background="#44FFFFFF" CornerRadius="3" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 2. ListBox Style with Custom ScrollBar and No Horizontal Scroll -->
+        <Style x:Key="IpodListBoxStyle" TargetType="{x:Type ListBox}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBox}">
+                        <Border Background="{TemplateBinding Background}">
+                            <ScrollViewer Focusable="false" Padding="{TemplateBinding Padding}">
+                                <ScrollViewer.Resources>
+                                    <Style BasedOn="{StaticResource ModernScrollBar}" TargetType="{x:Type ScrollBar}"/>
+                                </ScrollViewer.Resources>
+                                <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                            </ScrollViewer>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <SolidColorBrush x:Key="SliderTrackBrush" Color="#007AFF"/>
+        <Style x:Key="ModernSlider" TargetType="Slider">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid VerticalAlignment="Center">
+                            <!-- Background Track -->
+                            <Border x:Name="TrackBackground" 
+                            Height="6" 
+                            Background="#33FFFFFF" 
+                            CornerRadius="3" />
+
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate>
+                                                <!-- Active Progress Track -->
+                                                <Border Height="6" 
+                                                Background="{DynamicResource SliderTrackBrush}" 
+                                                CornerRadius="3"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="14" Height="14">
+                                        <Thumb.Template>
+                                            <ControlTemplate>
+                                                <Grid>
+                                                    <!-- Thumb Shadow -->
+                                                    <Ellipse Fill="Black" Opacity="0.2" Margin="1,1,-1,-1"/>
+                                                    <!-- Thumb Body -->
+                                                    <Ellipse Fill="White" Stroke="#DDD" StrokeThickness="0.5"/>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <SolidColorBrush x:Key="IpodScreenBrush" Color="#F5F5F5"/>
+        <SolidColorBrush x:Key="HoverColorBrush" Color="#E0E0E0"/>
+
+        <LinearGradientBrush x:Key="IpodShellBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FDFDFD" Offset="0"/>
+            <GradientStop Color="#E8EAEC" Offset="0.45"/>
+            <GradientStop Color="#C7CDD2" Offset="1"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="IpodShellHighlightBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#55FFFFFF" Offset="0"/>
+            <GradientStop Color="#18FFFFFF" Offset="0.28"/>
+            <GradientStop Color="#00000000" Offset="0.58"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="IpodShellLeftEdgeBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#62000000" Offset="0"/>
+            <GradientStop Color="#2A000000" Offset="0.24"/>
+            <GradientStop Color="#08000000" Offset="0.54"/>
+            <GradientStop Color="#00000000" Offset="0.78"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="IpodShellRightEdgeBrush" StartPoint="1,0" EndPoint="0,0">
+            <GradientStop Color="#62000000" Offset="0"/>
+            <GradientStop Color="#2A000000" Offset="0.24"/>
+            <GradientStop Color="#08000000" Offset="0.54"/>
+            <GradientStop Color="#00000000" Offset="0.78"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="IpodShellBottomEdgeBrush" StartPoint="0,1" EndPoint="0,0">
+            <GradientStop Color="#68000000" Offset="0"/>
+            <GradientStop Color="#2E000000" Offset="0.22"/>
+            <GradientStop Color="#0A000000" Offset="0.52"/>
+            <GradientStop Color="#00000000" Offset="0.8"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="IpodShellTopEdgeBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#4A000000" Offset="0"/>
+            <GradientStop Color="#20000000" Offset="0.24"/>
+            <GradientStop Color="#06000000" Offset="0.54"/>
+            <GradientStop Color="#00000000" Offset="0.78"/>
+        </LinearGradientBrush>
+
+        <RadialGradientBrush x:Key="IpodShellTopLeftCornerBrush" Center="0,0" GradientOrigin="0,0" RadiusX="1.15" RadiusY="1.15">
+            <GradientStop Color="#62000000" Offset="0"/>
+            <GradientStop Color="#24000000" Offset="0.35"/>
+            <GradientStop Color="#06000000" Offset="0.68"/>
+            <GradientStop Color="#00000000" Offset="1"/>
+        </RadialGradientBrush>
+
+        <RadialGradientBrush x:Key="IpodShellTopRightCornerBrush" Center="1,0" GradientOrigin="1,0" RadiusX="1.15" RadiusY="1.15">
+            <GradientStop Color="#62000000" Offset="0"/>
+            <GradientStop Color="#24000000" Offset="0.35"/>
+            <GradientStop Color="#06000000" Offset="0.68"/>
+            <GradientStop Color="#00000000" Offset="1"/>
+        </RadialGradientBrush>
+
+        <RadialGradientBrush x:Key="IpodShellBottomLeftCornerBrush" Center="0,1" GradientOrigin="0,1" RadiusX="1.15" RadiusY="1.15">
+            <GradientStop Color="#6A000000" Offset="0"/>
+            <GradientStop Color="#28000000" Offset="0.35"/>
+            <GradientStop Color="#08000000" Offset="0.68"/>
+            <GradientStop Color="#00000000" Offset="1"/>
+        </RadialGradientBrush>
+
+        <RadialGradientBrush x:Key="IpodShellBottomRightCornerBrush" Center="1,1" GradientOrigin="1,1" RadiusX="1.15" RadiusY="1.15">
+            <GradientStop Color="#6A000000" Offset="0"/>
+            <GradientStop Color="#28000000" Offset="0.35"/>
+            <GradientStop Color="#08000000" Offset="0.68"/>
+            <GradientStop Color="#00000000" Offset="1"/>
+        </RadialGradientBrush>
+
+        <Style x:Key="IpodMenuItemStyle" TargetType="{x:Type MenuItem}">
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <EventSetter Event="MouseEnter" Handler="MenuItem_MouseEnter"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Border x:Name="BgBorder" Background="Transparent" SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30" SharedSizeGroup="MenuItemIconColumnGroup"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="25"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Path x:Name="CheckMark" 
+                                        Grid.Column="0" 
+                                        Data="M0,3.5 L3,6.5 L8,0.5" 
+                                        Stroke="#333" 
+                                        StrokeThickness="2" 
+                                        VerticalAlignment="Center" 
+                                        HorizontalAlignment="Center" 
+                                        Visibility="Collapsed"/>
+
+                                <ContentPresenter x:Name="Icon" Grid.Column="0" ContentSource="Icon" 
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                                <ContentPresenter x:Name="Header" Grid.Column="1" ContentSource="Header" 
+                                          VerticalAlignment="Center" Margin="5,2,10,2"
+                                          TextBlock.Foreground="{TemplateBinding Foreground}"/>
+
+                                <Path x:Name="RightArrow" Grid.Column="2" Data="M0,0 L4,3.5 L0,7 Z" 
+                              Fill="#999" VerticalAlignment="Center" HorizontalAlignment="Center" 
+                              Visibility="Collapsed"/>
+
+                                <Popup x:Name="PART_Popup" AllowsTransparency="True" 
+                               IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" 
+                               Placement="Right" VerticalOffset="-3" HorizontalOffset="-2">
+                                    <Border Background="{DynamicResource IpodScreenBrush}" 
+                                    BorderBrush="#CCC" BorderThickness="1" Padding="2">
+                                        <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="True">
+                                <Setter TargetName="RightArrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource HoverColorBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="RightArrow" Property="Fill" Value="White"/>
+                            </Trigger>
+
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="CheckMark" Property="Stroke" Value="White"/>
+                            </MultiTrigger>
+
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSubmenuOpen" Value="True"/>
+                                    <Condition Property="IsMouseOver" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="BgBorder" Property="Background" Value="{DynamicResource HoverColorBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type ContextMenu}">
+            <Setter Property="Background" Value="{DynamicResource IpodScreenBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ContextMenu}">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="#CCC" BorderThickness="1" CornerRadius="2">
+                            <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Resources>
+                <Style TargetType="{x:Type MenuItem}" BasedOn="{StaticResource IpodMenuItemStyle}"/>
+            </Style.Resources>
+        </Style>
+
+    </Window.Resources>
+
+    <Window.ContextMenu>
+        <ContextMenu Opened="ContextMenu_Opened">
+
+            <!-- Playback Controls (Top Level) -->
+            <MenuItem x:Name="MenuPlayPause" Header="Play" FontWeight="Bold" Click="PlayPause_Click"/>
+            <MenuItem x:Name="NextMenuItem" Header="Next" Click="Next_Click"/>
+            <MenuItem x:Name="PrevMenuItem" Header="Previous" Click="Prev_Click"/>
+            
+            <Separator/>
+            
+            <MenuItem x:Name="MenuFavorite"
+                  Header="Favorite" 
+                  IsCheckable="True"
+                  Checked="MenuFavorite_Checked"
+                  Unchecked="MenuFavorite_Unchecked"/>
+
+            <MenuItem x:Name="MenuDiscordPresence" 
+                  Header="Discord Rich Presence" 
+                  IsCheckable="True"
+                  Checked="MenuDiscordPresence_Checked"
+                  Unchecked="MenuDiscordPresence_Unchecked"/>
+
+            <MenuItem Header="View Lyrics" Click="ShowLyrics_Click"/>
+            <MenuItem x:Name="MenuCoverFlow" Header="Album Flow" Click="ShowCoverFlow_Click" Visibility="Collapsed" IsEnabled="False"/>
+
+            <Separator/>
+
+            <!-- Audio Submenu -->
+            <MenuItem Header="Audio">
+                <MenuItem Header="Volume Up" Click="VolumeUp_Click"/>
+                <MenuItem Header="Volume Down" Click="VolumeDown_Click"/>
+                <MenuItem x:Name="MenuMute"
+                      Header="Mute" 
+                      IsCheckable="True"
+                      Checked="MenuMute_Checked"
+                      Unchecked="MenuMute_Unchecked"/>
+                <Separator/>
+                <MenuItem x:Name="MenuAudioOutput" Header="Output" SubmenuOpened="AudioOutput_SubmenuOpened">
+                    <MenuItem Header="Loading..." IsEnabled="False"/>
+                </MenuItem>
+            </MenuItem>
+
+            <Separator/>
+
+            <MenuItem Header="Internet Radio">
+                <MenuItem Header="Search..." Click="OpenRadioSearch_Click"/>
+                <MenuItem Header="Add Station by URL..." Click="AddRadioStationByUrl_Click"/>
+                <MenuItem x:Name="MenuCopyRadioUrl" Header="Copy Stream URL" Click="CopyRadioUrl_Click"/>
+                <MenuItem x:Name="MenuCopyRadioNowPlaying" Header="Copy Now Playing" Click="CopyRadioNowPlaying_Click"/>
+                
+                <Separator/>
+
+                <MenuItem x:Name="MenuRadioFavorites" Header="Favorite Stations" SubmenuOpened="MenuRadioFavorites_SubmenuOpened">
+                    <MenuItem Header="Check Availability" Click="CheckRadioFavoritesAvailability_Click"/>
+                    <MenuItem Header="Right-click to delete a station" IsEnabled="False" FontStyle="Italic" Foreground="Gray"/>
+                    <Separator/>
+                </MenuItem>
+
+                <!-- Feature 6: Recent Stations -->
+                <MenuItem x:Name="MenuRadioRecent" Header="History" SubmenuOpened="MenuRadioRecent_SubmenuOpened">
+                    <MenuItem Header="Empty" IsEnabled="False" FontStyle="Italic" Foreground="Gray"/>
+                </MenuItem>
+
+                <Separator/>
+
+                <!-- Feature 5: Stream Recording -->
+                <MenuItem Header="Recording" SubmenuOpened="RecordingMenuItem_SubmenuOpened">
+                    <MenuItem x:Name="MenuRecordMP3" Header="Record as MP3..." Click="RecordMP3_Click"/>
+                    <MenuItem x:Name="MenuRecordWAV" Header="Record as WAV..." Click="RecordWAV_Click"/>
+                    <MenuItem Header="Recording Folder..." Click="ChangeRecordingFolder_Click"/>
+                    <MenuItem Header="Open Recording Folder" Click="OpenRecordingFolder_Click"/>
+                    <Separator/>
+                    <MenuItem x:Name="MenuStopRecording" Header="Stop Recording" IsEnabled="False" Click="StopRecording_Click"/>
+                </MenuItem>
+
+                <Separator/>
+
+                <MenuItem Header="Options">
+                    <!-- Feature 1: Auto-Reconnect -->
+                    <MenuItem x:Name="MenuAutoReconnect" Header="Auto-Reconnect" IsCheckable="True" IsChecked="True" Click="AutoReconnect_Toggled"/>
+                    <MenuItem x:Name="MenuAllowHTTP" Header="Allow HTTP Streams" IsCheckable="True" IsChecked="False" Click="AllowHTTPStreams_Toggled"/>
+                    <MenuItem x:Name="MenuRadioBuffer" Header="Buffer Size">
+                        <MenuItem Header="Low Latency" IsCheckable="True" Tag="0" Click="RadioBuffer_Click"/>
+                        <MenuItem Header="Balanced" IsCheckable="True" Tag="1" Click="RadioBuffer_Click"/>
+                        <MenuItem Header="Stable" IsCheckable="True" Tag="2" Click="RadioBuffer_Click"/>
+                    </MenuItem>
+                </MenuItem>
+            </MenuItem>
+
+
+            <!-- Library Submenu -->
+            <MenuItem Header="Library" SubmenuOpened="LibraryItem_SubmenuOpened">
+                <MenuItem x:Name="SearchMenuItem" Header="Search..." Click="OpenSearch_Click"/>
+                <Separator/>
+
+                <MenuItem x:Name="NewPlaylistMenuItem" Header="New Playlist..." Click="NewPlaylist_Click"/>
+                <MenuItem x:Name="MenuAddToPlaylist" Header="Add to Playlist"
+                          SubmenuOpened="MenuAddToPlaylist_SubmenuOpened">
+                    <MenuItem Header="Empty" IsEnabled="False"/>
+                </MenuItem> 
+                <MenuItem x:Name="MenuPlaylists" Header="Saved Playlists" SubmenuOpened="MenuPlaylists_SubmenuOpened">
+                    <MenuItem Header="Empty" IsEnabled="False"/>
+                </MenuItem>
+                
+                <Separator/>
+                
+                <MenuItem x:Name="MenuPlayFavorites" Header="Play My Favorites" Click="PlayFavorites_Click"/>
+                
+                <Separator/>
+                
+                <MenuItem Header="Add Files..." Click="AddFiles_Click"/>
+                <MenuItem Header="Add Folder..." Click="AddFolder_Click"/>
+
+                <Separator/>
+
+                <MenuItem Header="Music Downloader" Click="DownloadMusic_Click"/>
+                
+                <Separator/>
+                
+                <MenuItem x:Name="SaveCurrentPlaylistMenuItem" Header="Save Current Playlist" Click="SaveCurrentPlaylist_Click"/>
+                <MenuItem Header="Open Root Folder" Click="OpenLibraryInExplorer_Click"/>
+                <MenuItem x:Name="ClearQueueMenuItem" Header="Clear Queue" Click="ClearCurrentPlaylist_Click"/>
+
+                <Separator/>
+
+                <MenuItem x:Name="MenuStats" Header="Library Statistics" Click="MenuStats_Click"/>
+            </MenuItem>
+
+            <!-- Options Submenu -->
+            <MenuItem Header="Options">
+                <MenuItem Header="Device Lock">
+                    <MenuItem Header="Lock Screen" Click="LockScreen_Click"/>
+                    <MenuItem Header="Change Wallpaper..." Click="ChangeLockWallpaper_Click"/>
+                    <MenuItem Header="Clear Wallpaper" Click="ClearLockWallpaper_Click"/>
+                    <MenuItem x:Name="MenuScreenSleep" Header="Screen Timeout">
+                        <MenuItem Header="2 minutes" IsCheckable="True" Tag="2" Click="ScreenSleep_Click"/>
+                        <MenuItem Header="5 minutes" IsCheckable="True" Tag="5" Click="ScreenSleep_Click"/>
+                        <MenuItem Header="10 minutes" IsCheckable="True" Tag="10" Click="ScreenSleep_Click"/>
+                        <MenuItem Header="15 minutes" IsCheckable="True" Tag="15" Click="ScreenSleep_Click"/>
+                        <MenuItem Header="30 minutes" IsCheckable="True" Tag="30" Click="ScreenSleep_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Never while unlocked" IsCheckable="True" Tag="0" Click="ScreenSleep_Click"/>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem x:Name="MenuRequirePasscode"
+                              Header="Require Passcode"
+                              IsCheckable="True"
+                              Checked="MenuRequirePasscode_Checked"
+                              Unchecked="MenuRequirePasscode_Unchecked"/>
+                    <MenuItem Header="Change Passcode..." Click="ChangePasscode_Click"/>
+                </MenuItem>
+                <MenuItem x:Name="MenuSleepTimer" Header="Sleep Timer">
+                    <MenuItem Header="1 minute" IsCheckable="True" Tag="5" Click="SleepTimer_Click"/>
+                    <MenuItem Header="10 minutes" IsCheckable="True" Tag="10" Click="SleepTimer_Click"/>
+                    <MenuItem Header="15 minutes" IsCheckable="True" Tag="15" Click="SleepTimer_Click"/>
+                    <MenuItem Header="30 minutes" IsCheckable="True" Tag="30" Click="SleepTimer_Click"/>
+                    <MenuItem Header="45 minutes" IsCheckable="True" Tag="45" Click="SleepTimer_Click"/>
+                    <MenuItem Header="1 hour" IsCheckable="True" Tag="60" Click="SleepTimer_Click"/>
+                    <MenuItem Header="2 hours" IsCheckable="True" Tag="120" Click="SleepTimer_Click"/>
+                    <MenuItem Header="3 hours" IsCheckable="True" Tag="180" Click="SleepTimer_Click"/>
+                    <Separator/>
+                    <MenuItem x:Name="MenuSleepOff" Header="Off" IsCheckable="True" IsChecked="True" Tag="0" Click="SleepTimer_Click"/>
+                </MenuItem>
+                <MenuItem x:Name="ColorMenu" Header="Theme">
+                    <MenuItem Header="Slate (Default)" Click="ChangeColor_Click" Tag="#34495e"/>
+                    <Separator/>
+                    <MenuItem Header="Bright Yellow" Click="ChangeColor_Click" Tag="#f1c40f"/>
+                    <MenuItem Header="Champagne Gold" Click="ChangeColor_Click" Tag="#d4af37"/>
+                    <MenuItem Header="Classic Blue" Click="ChangeColor_Click" Tag="#2980b9"/>
+                    <MenuItem Header="Copper" Click="ChangeColor_Click" Tag="#b87333"/>
+                    <MenuItem Header="Deep Plum" Click="ChangeColor_Click" Tag="#5b2c6f"/>
+                    <MenuItem Header="Electric Green" Click="ChangeColor_Click" Tag="#27ae60"/>
+                    <MenuItem Header="Graphite" Click="ChangeColor_Click" Tag="#414141"/>
+                    <MenuItem Header="Hot Pink" Click="ChangeColor_Click" Tag="#e84393"/>
+                    <MenuItem Header="Polished Steel" Click="ChangeColor_Click" Tag="#7f8c8d"/>
+                    <MenuItem Header="Product Red" Click="ChangeColor_Click" Tag="#c0392b"/>
+                    <MenuItem Header="Rose Gold" Click="ChangeColor_Click" Tag="#b76e79"/>
+                    <MenuItem Header="Royal Purple" Click="ChangeColor_Click" Tag="#8e44ad"/>
+                    <MenuItem Header="Silver" Click="ChangeColor_Click" Tag="#bdc3c7"/>
+                    <MenuItem Header="Sky Blue" Click="ChangeColor_Click" Tag="#87ceeb"/>
+                    <MenuItem Header="Soft Pink" Click="ChangeColor_Click" Tag="#f1a7b9"/>
+                    <MenuItem Header="Sunset Orange" Click="ChangeColor_Click" Tag="#d35400"/>
+                    <Separator/>
+                    <MenuItem x:Name="MenuExtractColor" 
+                          Header="Extract From Album Cover" 
+                          IsCheckable="True"
+                          Checked="MenuExtractColor_Checked"
+                          Unchecked="MenuExtractColor_Unchecked"/>
+                </MenuItem>
+
+                <Separator/>
+
+                <MenuItem x:Name="MenuTopMost" 
+                    Header="Always On Top" 
+                    IsCheckable="True"
+                    Checked="MenuTopMost_Checked"
+                    Unchecked="MenuTopMost_Unchecked"/>
+                <MenuItem x:Name="MenuIntegrate" 
+                    Header="Add to Explorer Menu" 
+                    IsCheckable="True"
+                    Checked="MenuIntegrate_Checked"
+                    Unchecked="MenuIntegrate_Unchecked"/>
+                <MenuItem x:Name="MenuShowNextUp" 
+                    Header="Show Up Next" 
+                    IsCheckable="True"
+                    Checked="MenuShowNextUp_Checked"
+                    Unchecked="MenuShowNextUp_Unchecked"/>
+
+                <Separator/>
+
+                <MenuItem Header="Toggle View" Click="ToggleDetailedView_Click"/>                
+                <MenuItem Header="Reset Defaults" Click="ResetDefaults_Click"/>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Main Items -->
+            <MenuItem Header="User Guide" Click="Help_Click"/>
+            <MenuItem Header="Check for Updates" Click="CheckUpdates_Click"/>
+            <MenuItem Header="About" Click="About_Click"/>
+            <Separator/>
+            <MenuItem Header="Minimize" Click="Minimize_Click"/>
+            <MenuItem Header="Turn Screen Off" Click="TurnScreenOff_Click"/>
+            <MenuItem Header="Quit Podmix" Click="Exit_Click"/>
+        </ContextMenu>
+    </Window.ContextMenu>
+
+    <Border x:Name="MainContainer"
+            Margin="15"
+            CornerRadius="34"
+            Background="{DynamicResource HoverColorBrush}"
+            BorderThickness="0"
+            SnapsToDevicePixels="True"
+            UseLayoutRounding="True">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="MainShakeTransform" X="0" Y="0"/>
+        </Border.RenderTransform>
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.32" Color="#222222"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid x:Name="IpodShellFrame"
+                  Width="296"
+                  Height="426"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  IsHitTestVisible="False"
+                  Visibility="{Binding Visibility, ElementName=IpodScreen}">
+                <Path>
+                    <Path.Data>
+                        <GeometryGroup FillRule="EvenOdd">
+                            <RectangleGeometry Rect="0,0,296,426" RadiusX="34" RadiusY="34"/>
+                            <RectangleGeometry Rect="18,18,260,390" RadiusX="16" RadiusY="16"/>
+                        </GeometryGroup>
+                    </Path.Data>
+                    <Path.Fill>
+                        <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                            <GradientStop Color="#38000000" Offset="0"/>
+                            <GradientStop Color="#12000000" Offset="0.035"/>
+                            <GradientStop Color="#00000000" Offset="0.061"/>
+                            <GradientStop Color="#00000000" Offset="0.939"/>
+                            <GradientStop Color="#12000000" Offset="0.965"/>
+                            <GradientStop Color="#38000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Path.Fill>
+                </Path>
+
+                <Path>
+                    <Path.Data>
+                        <GeometryGroup FillRule="EvenOdd">
+                            <RectangleGeometry Rect="0,0,296,426" RadiusX="34" RadiusY="34"/>
+                            <RectangleGeometry Rect="18,18,260,390" RadiusX="16" RadiusY="16"/>
+                        </GeometryGroup>
+                    </Path.Data>
+                    <Path.Fill>
+                        <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                            <GradientStop Color="#10000000" Offset="0"/>
+                            <GradientStop Color="#00000000" Offset="0.048"/>
+                            <GradientStop Color="#00000000" Offset="0.93"/>
+                            <GradientStop Color="#1A000000" Offset="0.972"/>
+                            <GradientStop Color="#4C000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Path.Fill>
+                </Path>
+            </Grid>
+
+            <StackPanel Margin="18">
+
+        <Border x:Name="IpodScreen" 
+                Visibility="Visible"
+                Width="260" Height="220"
+                Background="Black" 
+                BorderBrush="#1D1D1D"
+                BorderThickness="3"
+                CornerRadius="14,14,0,0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="6" ShadowDepth="1" Direction="270" Opacity="0.35" Color="#000000"/>
+            </Border.Effect>
+
+            <!-- !!!!!! FINALLY FIXED !!!!! -->
+            <Border.Clip>
+                <PathGeometry>
+                    <PathFigure StartPoint="0,14">
+                        <!-- Top-left curve -->
+                        <ArcSegment Point="14,0" Size="14,14" SweepDirection="Clockwise"/>
+
+                        <!-- Top edge -->
+                        <LineSegment Point="246,0"/>
+
+                        <!-- Top-right curve -->
+                        <ArcSegment Point="260,14" Size="14,14" SweepDirection="Clockwise"/>
+
+                        <!-- Right edge -->
+                        <LineSegment Point="260,220"/>
+
+                        <!-- Bottom edge (square) -->
+                        <LineSegment Point="0,220"/>
+
+                        <!-- Left edge -->
+                        <LineSegment Point="0,14"/>
+                    </PathFigure>
+                </PathGeometry>
+            </Border.Clip>
+
+
+            <Grid>
+                <Grid.Clip>
+                    <PathGeometry>
+                        <PathFigure StartPoint="0,11">
+                            <!-- Clip the screen content inside the black bezel. -->
+                            <ArcSegment Point="11,0" Size="11,11" SweepDirection="Clockwise"/>
+                            <LineSegment Point="243,0"/>
+                            <ArcSegment Point="254,11" Size="11,11" SweepDirection="Clockwise"/>
+                            <LineSegment Point="254,214"/>
+                            <LineSegment Point="0,214"/>
+                            <LineSegment Point="0,11"/>
+                        </PathFigure>
+                    </PathGeometry>
+                </Grid.Clip>
+
+                <Border Margin="-1"
+                        CornerRadius="10,10,0,0"
+                        Background="#22000000"
+                        BorderBrush="#55000000"
+                        BorderThickness="1"
+                        IsHitTestVisible="False"/>
+
+                <Grid x:Name="PlayerView" Visibility="Visible">
+                    <Grid x:Name="ArtworkContainer" PreviewMouseLeftButtonDown="ArtworkContainer_MouseLeftButtonDown" Background="Transparent">
+                        <TextBlock x:Name="TxtAlbumArt" Text="♪" Foreground="#999" FontSize="80" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image x:Name="ImgAlbumArt" Stretch="UniformToFill">
+                            <Image.Effect>
+                                <BlurEffect x:Name="ArtBlur" Radius="0"/>
+                            </Image.Effect>
+                        </Image>
+                        <Border Background="#99000000"/>
+                    </Grid>
+
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="2" Margin="0,0,0,5">
+                            <Grid HorizontalAlignment="Center">
+                                <Canvas x:Name="TitleCanvas" Width="210" Height="25" ClipToBounds="True">
+                                    <TextBlock x:Name="TxtTitle" Text="" FontWeight="Bold" FontSize="15" Foreground="White" Width="210" TextAlignment="Center">
+                                        <TextBlock.RenderTransform>
+                                            <TranslateTransform x:Name="TitleTransform" X="0" />
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Canvas>
+                            </Grid>
+                            <Grid HorizontalAlignment="Center">
+                                <Canvas x:Name="ArtistCanvas" Width="210" Height="20" ClipToBounds="True" Background="Transparent">
+                                    <TextBlock x:Name="TxtArtist"
+           Text=""
+           FontSize="12"
+           Foreground="#DDD"
+           Width="210"
+           TextAlignment="Center"
+           Cursor="Hand"
+           MouseEnter="TxtArtist_MouseEnter"
+           MouseLeave="TxtArtist_MouseLeave"
+           MouseLeftButtonUp="TxtArtist_MouseRightButtonUp">
+
+                                        <TextBlock.RenderTransform>
+                                            <TranslateTransform x:Name="ArtistTransform" X="0" />
+                                        </TextBlock.RenderTransform>
+
+                                        <TextBlock.ContextMenu>
+                                            <ContextMenu x:Name="ArtistContextMenu">
+                                                <MenuItem Header="Shuffle Artist" Click="ShuffleArtist_Click"/>
+                                                <Separator/>
+                                                <MenuItem Header="Search Online">
+                                                    <MenuItem Header="Google" Click="SearchOnline_Click" Tag="https://www.google.com/search?q="/>
+                                                    <MenuItem Header="Spotify" Click="SearchOnline_Click" Tag="https://open.spotify.com/search/"/>
+                                                    <MenuItem Header="YouTube Music" Click="SearchOnline_Click" Tag="https://music.youtube.com/search?q="/>
+                                                    <MenuItem Header="SoundCloud" Click="SearchOnline_Click" Tag="https://soundcloud.com/search?q="/>
+                                                    <MenuItem Header="Apple Music" Click="SearchOnline_Click" Tag="https://music.apple.com/search?term="/>
+                                                    <MenuItem Header="Tidal" Click="SearchOnline_Click" Tag="https://listen.tidal.com/search?q="/>
+                                                </MenuItem>
+
+                                            </ContextMenu>
+                                        </TextBlock.ContextMenu>
+
+                                    </TextBlock>
+                                </Canvas>
+                            </Grid>
+                            <Grid HorizontalAlignment="Center">
+                                <Canvas x:Name="AlbumCanvas" Width="210" Height="20" ClipToBounds="True">
+                                    <TextBlock x:Name="TxtAlbum" Text="" FontSize="11" Foreground="#BBB" FontStyle="Italic" Width="210" TextAlignment="Center">
+                                        <TextBlock.RenderTransform>
+                                            <TranslateTransform x:Name="AlbumTransform" X="0" />
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Canvas>
+                            </Grid>
+                            <Grid>
+                                <StackPanel x:Name="PlaybackProgressPanel">
+                                    <Slider x:Name="ProgressSlider" 
+                                            Style="{StaticResource ModernSlider}" 
+                                            Margin="0,10,0,2"
+                                            Cursor="Hand"
+                                            Thumb.DragStarted="Slider_DragStarted" 
+                                            Thumb.DragCompleted="Slider_DragCompleted" 
+                                            MouseLeftButtonUp="Slider_MouseLeftButtonUp"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock x:Name="TimeNow"
+                       Text="0:00"
+                       FontSize="11"
+                       Foreground="White"
+                       HorizontalAlignment="Left"
+                       Grid.Column="0"/>
+
+                                        <TextBlock x:Name="TxtCount"
+                       Text="0 / 0"
+                       FontSize="11"
+                       Foreground="LightGray"
+                       HorizontalAlignment="Center"
+                       Grid.Column="1"
+                       Cursor="Hand"
+                       MouseEnter="TxtCount_MouseEnter"
+                       MouseLeave="TxtCount_MouseLeave"
+                       MouseDown="TxtCount_MouseDown"/>
+
+                                        <TextBlock x:Name="TimeEnd"
+                       Text="0:00"
+                       FontSize="11"
+                       Foreground="White"
+                       HorizontalAlignment="Right"
+                       Grid.Column="2"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <Border x:Name="VolumeOverlay"
+                                        Visibility="Collapsed"
+                                        Opacity="0"
+                                        Background="#EE111111"
+                                        CornerRadius="4"
+                                        Padding="8,5"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        IsHitTestVisible="False">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="6"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock x:Name="TxtVolumeIcon"
+                                                   Grid.Row="0"
+                                                   Grid.Column="0"
+                                                   Text="VOL"
+                                                   Foreground="#AAAAAA"
+                                                   FontSize="10"
+                                                   FontWeight="Bold"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+
+                                        <Border x:Name="VolumeBarTrack"
+                                                Grid.Row="0"
+                                                Grid.Column="1"
+                                                Height="6"
+                                                Background="#33FFFFFF"
+                                                CornerRadius="3"
+                                                VerticalAlignment="Center"
+                                                ClipToBounds="True">
+                                            <Border x:Name="VolumeBarFill"
+                                                    Width="0"
+                                                    HorizontalAlignment="Left"
+                                                    Background="White"
+                                                    CornerRadius="3"/>
+                                        </Border>
+
+                                        <TextBlock x:Name="TxtVolumePercent"
+                                                   Grid.Row="0"
+                                                   Grid.Column="2"
+                                                   Text="0%"
+                                                   Foreground="White"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   Margin="8,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+                <!-- Album Flow View -->
+                <Grid x:Name="CoverFlowView" Visibility="Collapsed" Background="Transparent">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="34"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="48"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid IsHitTestVisible="False" Grid.RowSpan="3">
+                        <Image x:Name="ImgCoverFlowBackground" Stretch="UniformToFill"/>
+                        <Border Background="#DD000000"/>
+                    </Grid>
+
+                    <TextBlock Text="Album Flow"
+                               Grid.Row="0"
+                               Foreground="White"
+                               FontWeight="Bold"
+                               FontSize="13"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Margin="0,6,0,0"/>
+
+                    <Grid Grid.Row="1" Margin="6,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="1.35*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Width="44" Height="44" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.35" Background="#151515" CornerRadius="4" BorderBrush="#22FFFFFF" BorderThickness="1" ClipToBounds="True" RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <SkewTransform AngleY="-12"/>
+                            </Border.RenderTransform>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="7" ShadowDepth="2" Opacity="0.3"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Image x:Name="CoverFlowMinus2" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Border Background="#22FFFFFF" Height="14" VerticalAlignment="Top"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="1" Width="58" Height="58" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.65" Background="#151515" CornerRadius="5" BorderBrush="#33FFFFFF" BorderThickness="1" ClipToBounds="True" RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <SkewTransform AngleY="-8"/>
+                            </Border.RenderTransform>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="9" ShadowDepth="2" Opacity="0.35"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Image x:Name="CoverFlowMinus1" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Border Background="#22FFFFFF" Height="16" VerticalAlignment="Top"/>
+                            </Grid>
+                        </Border>
+
+                        <Border x:Name="CoverFlowCenterHit"
+                                Grid.Column="2"
+                                Width="86"
+                                Height="86"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Background="#151515"
+                                CornerRadius="6"
+                                BorderBrush="#AAFFFFFF"
+                                BorderThickness="1.5"
+                                ClipToBounds="True"
+                                MouseLeftButtonDown="CoverFlowCenter_MouseLeftButtonDown">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.65"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Image x:Name="CoverFlowCenter" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Border Height="26" VerticalAlignment="Top" Opacity="0.55">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#66FFFFFF" Offset="0"/>
+                                            <GradientStop Color="#00FFFFFF" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <Border BorderBrush="#44FFFFFF" BorderThickness="1" CornerRadius="5"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="3" Width="58" Height="58" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.65" Background="#151515" CornerRadius="5" BorderBrush="#33FFFFFF" BorderThickness="1" ClipToBounds="True" RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <SkewTransform AngleY="8"/>
+                            </Border.RenderTransform>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="9" ShadowDepth="2" Opacity="0.35"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Image x:Name="CoverFlowPlus1" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Border Background="#22FFFFFF" Height="16" VerticalAlignment="Top"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="4" Width="44" Height="44" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.35" Background="#151515" CornerRadius="4" BorderBrush="#22FFFFFF" BorderThickness="1" ClipToBounds="True" RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <SkewTransform AngleY="12"/>
+                            </Border.RenderTransform>
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="7" ShadowDepth="2" Opacity="0.3"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Image x:Name="CoverFlowPlus2" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Border Background="#22FFFFFF" Height="14" VerticalAlignment="Top"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12,0">
+                        <TextBlock x:Name="TxtCoverFlowAlbum"
+                                   Text="Scanning albums..."
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   FontSize="13"
+                                   Width="230"
+                                   TextAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="TxtCoverFlowArtist"
+                                   Text=""
+                                   Foreground="#BBBBBB"
+                                   FontSize="11"
+                                   Width="230"
+                                   TextAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Rating Overlay -->
+                <Border x:Name="RatingOverlay" 
+                Visibility="Collapsed" 
+                Background="#44000000" 
+                CornerRadius="10,10,0,0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                SnapsToDevicePixels="True"
+                PreviewMouseLeftButtonDown="ArtworkContainer_MouseLeftButtonDown">
+
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="RatingOverlayTransform"/>
+                    </Border.RenderTransform>
+
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel.Resources>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Foreground" Value="#555"/>
+                                    <Setter Property="FontSize" Value="23"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <Setter Property="Margin" Value="4,0"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid>
+                                                    <!-- Gray star (base) -->
+                                                    <TextBlock Text="{TemplateBinding Content}"
+                           Foreground="#555"
+                           FontSize="23"/>
+
+                                                    <!-- White star (animated overlay) -->
+                                                    <TextBlock x:Name="WhiteStar"
+                           Text="{TemplateBinding Content}"
+                           Foreground="White"
+                           FontSize="23"
+                           Opacity="0"/>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </StackPanel.Resources>
+                            <Button Content="★" Tag="1" Click="RateStar_Click" MouseEnter="Star_MouseEnter" MouseLeave="Star_MouseLeave"/>
+                            <Button Content="★" Tag="2" Click="RateStar_Click" MouseEnter="Star_MouseEnter" MouseLeave="Star_MouseLeave"/>
+                            <Button Content="★" Tag="3" Click="RateStar_Click" MouseEnter="Star_MouseEnter" MouseLeave="Star_MouseLeave"/>
+                            <Button Content="★" Tag="4" Click="RateStar_Click" MouseEnter="Star_MouseEnter" MouseLeave="Star_MouseLeave"/>
+                            <Button Content="★" Tag="5" Click="RateStar_Click" MouseEnter="Star_MouseEnter" MouseLeave="Star_MouseLeave"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Playlists View -->
+                <Grid x:Name="PlaylistsView" Visibility="Collapsed" Background="Transparent">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="34"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Added Grid.RowSpan="2" so it covers the header AND the list -->
+                    <Grid IsHitTestVisible="False" Grid.RowSpan="2">
+                        <Image x:Name="ImgPlaylistsBackground" Stretch="UniformToFill"/>
+                        <Border Background="#CC000000"/>
+                    </Grid>
+
+                    <TextBlock Text="Saved Playlists" 
+               Grid.Row="0"
+               Foreground="White" 
+               FontWeight="Bold" 
+               FontSize="13" 
+               HorizontalAlignment="Center" 
+               VerticalAlignment="Center" 
+               Margin="0,6,0,0"/>
+
+                    <ListBox x:Name="LstPlaylists" 
+             Grid.Row="1" 
+             Style="{StaticResource IpodListBoxStyle}"
+             Margin="5,5,5,5"
+             MouseDoubleClick="LstPlaylists_MouseDoubleClick">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <StackPanel>
+                                                <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" CornerRadius="4" Margin="0,1">
+                                                    <Border.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="Play" Click="PlaylistMenuPlay_Click"/>
+                                                            <MenuItem Header="Delete" Click="PlaylistMenuDelete_Click"/>
+                                                        </ContextMenu>
+                                                    </Border.ContextMenu>
+
+                                                    <Grid Margin="10,6">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Name}" 
+                                                       FontWeight="Bold" 
+                                                       FontSize="13" 
+                                                       Foreground="White"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding SongCountDisplay}" 
+                                                       FontSize="11" 
+                                                       Foreground="#88FFFFFF"/>
+                                                        </StackPanel>
+
+                                                        <TextBlock Grid.Column="1" 
+                                                   Text="›" 
+                                                   FontSize="18" 
+                                                   Foreground="#44FFFFFF" 
+                                                   VerticalAlignment="Center" 
+                                                   Margin="5,0,0,0"/>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Height="0.5" Background="#11FFFFFF" Margin="10,0" SnapsToDevicePixels="True"/>
+                                            </StackPanel>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#11FFFFFF"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#1AFFFFFF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </Grid>
+
+                <!-- Lyrics View -->
+                <Grid x:Name="LyricsView" Visibility="Collapsed">
+                    <!-- Background Image with Overlay -->
+                    <Grid IsHitTestVisible="False">
+                        <Image x:Name="ImgLyricsBackground" Stretch="UniformToFill"/>
+                        <Border Background="#CC000000"/>
+                    </Grid>
+
+                    <Grid Margin="15,0,15,5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34"/>
+                            <!-- Spacer to stay below the top app buttons -->
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Lyrics"
+                                   Grid.Row="0"
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   FontSize="13"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Margin="0,6,0,0"/>
+
+                        <ScrollViewer Grid.Row="1" Margin="5,0,0,5" 
+                      VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled">
+                            <ScrollViewer.Resources>
+                                <Style BasedOn="{StaticResource ModernScrollBar}" TargetType="{x:Type ScrollBar}"/>
+                            </ScrollViewer.Resources>
+                            <TextBlock x:Name="TxtLyrics" 
+                       Text="Searching..." 
+                       Foreground="LightGray" 
+                       FontSize="12" 
+                       TextWrapping="Wrap" 
+                       LineHeight="18"
+                       TextAlignment="Center"
+                       MouseLeftButtonDown="Window_MouseLeftButtonDown" />
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+
+                <!-- About View -->
+                <Grid x:Name="AboutView" Visibility="Collapsed" Background="Transparent">
+                    <!-- Background Image with Overlay -->
+                    <Grid IsHitTestVisible="False">
+                        <Image x:Name="ImgAboutBackground" Stretch="UniformToFill"/>
+                        <Border Background="#CC000000"/>
+                    </Grid>
+
+                    <StackPanel Margin="15,30,15,10">
+                        <!-- Header with App Icon -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Image x:Name="ImgAboutIcon" Width="40" Height="40" Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock FontSize="18" FontWeight="Bold">
+    <Run Text="Podmix">
+        <Run.Foreground>
+            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                <GradientStop Color="#FF5F57" Offset="0.0" />
+                <GradientStop Color="#FFBD2E" Offset="0.5" />
+                <GradientStop Color="#28C840" Offset="1.0" />
+            </LinearGradientBrush>
+        </Run.Foreground>
+    </Run>
+    <Run Text="Music" Foreground="White" FontWeight="Light"/>
+                                </TextBlock>
+
+                                <TextBlock Text="Version 1.0 | Freeware" Foreground="#BBBBBB" FontSize="11"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <TextBlock x:Name="TxtCopyright" Text="© Exe Innovate" Foreground="#BBBBBB" FontSize="13" Margin="0,0,0,8"/>
+
+                        <TextBlock Text="This app is free. If you like it, please consider supporting the developer." 
+       Foreground="#F5F5F5" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,15"/>
+                    </StackPanel>
+
+                    <!-- Buttons Container -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,15,15">
+                        <!-- Donate Button -->
+                        <Button x:Name="BtnDonate" Click="Donate_Click" 
+                Content="Donate" 
+                Background="#0070BA" Foreground="White" 
+                Width="100" Height="26" Cursor="Hand" Margin="0,0,10,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="13">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+
+                        <!-- OK Button -->
+                        <Button Content="OK" 
+                Click="BackToPlayer_Click"
+                Width="60" Height="26" 
+                Background="#0070BA" Foreground="White" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="13">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top">
+                    <!-- Red: Close -->
+                    <Button Click="Exit_Click" Width="12" Height="12" Margin="0,0,6,0" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate>
+                                <Ellipse Fill="#FF5F57" Stroke="#E14942" StrokeThickness="0.5"/>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <!-- Yellow: Minimize to Taskbar -->
+                    <Button Click="Minimize_Click" Width="12" Height="12" Margin="0,0,6,0" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate>
+                                <Ellipse Fill="#FFBD2E" Stroke="#D6A024" StrokeThickness="0.5"/>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <!-- Green: Minimize to System Tray -->
+                    <Button Click="MinimizeToTray_Click" Width="12" Height="12" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate>
+                                <Ellipse Fill="#28C840" Stroke="#24A135" StrokeThickness="0.5"/>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
+
+                <StackPanel Orientation="Horizontal" 
+            HorizontalAlignment="Right" 
+            VerticalAlignment="Top" 
+            Margin="0,8,10,0">
+
+                    <!-- Search Button -->
+                    <Button x:Name="BtnShowSearch" 
+Click="BtnShowSearch_Click"
+Width="24" Height="24" 
+Cursor="Hand"
+Background="Transparent"
+Foreground="White">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="BtnBorder" Background="Transparent" CornerRadius="5">
+                                    <!-- Changed from TextBlock to ContentPresenter -->
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="BtnBorder" Property="Background" Value="#33FFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Playlist Toggle Button -->
+                    <Button x:Name="BtnTogglePlaylists" 
+            Click="BtnTogglePlaylists_Click"
+            Width="24" Height="24" 
+            Cursor="Hand"
+            Background="Transparent"
+            Foreground="White"
+            Margin="2,0,0,0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="BtnBorder" Background="Transparent" CornerRadius="5">
+                                    <!-- Changed from TextBlock to ContentPresenter -->
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="BtnBorder" Property="Background" Value="#33FFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
+                <Border CornerRadius="10,10,0,0"
+                        IsHitTestVisible="False"
+                        Opacity="0">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#AAFFFFFF" Offset="0"/>
+                            <GradientStop Color="#22FFFFFF" Offset="0.18"/>
+                            <GradientStop Color="#00000000" Offset="0.48"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <Grid x:Name="BootView"
+                      Visibility="Visible"
+                      Background="Black"
+                      Opacity="1"
+                      Panel.ZIndex="30"
+                      IsHitTestVisible="False">
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                RenderTransformOrigin="0.5,0.5">
+                        <StackPanel.RenderTransform>
+                            <ScaleTransform x:Name="BootViewScale" ScaleX="0.92" ScaleY="0.92"/>
+                        </StackPanel.RenderTransform>
+                        <Image x:Name="ImgBootLoading"
+                               Source="assets/loading.gif"
+                               Width="30"
+                               Height="30"
+                               Stretch="Uniform"
+                               HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="TxtBootTitle"
+                                    Text="Podmix"
+                                    Foreground="White"
+                                    FontSize="18"
+                                    FontWeight="SemiBold"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0"/>
+                                <TextBlock x:Name="TxtBootSubtitle"
+                                   Text="Welcome"
+                                   Foreground="#88FFFFFF"
+                                   FontSize="10"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,1,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid x:Name="DeviceOverlay"
+                      Visibility="Collapsed"
+                      Background="Black"
+                      Panel.ZIndex="20"
+                      Focusable="True"
+                      MouseLeftButtonDown="DeviceOverlay_MouseLeftButtonDown">
+                    <Grid x:Name="DeviceOffView" Visibility="Collapsed">
+                        <Border Background="Black"/>
+                    </Grid>
+
+                    <Grid x:Name="LockScreenView" Visibility="Collapsed">
+                        <Grid.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#202C36" Offset="0"/>
+                                <GradientStop Color="#0B1016" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Grid.Background>
+
+                        <Image x:Name="ImgLockWallpaper" Stretch="UniformToFill"/>
+                        <Border Background="#88000000"/>
+
+                        <Grid Margin="16,13,16,12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0"
+           FontSize="11"
+           FontWeight="SemiBold"
+           HorizontalAlignment="Left">
+    <Run Text="Podmix">
+        <Run.Foreground>
+            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                <GradientStop Color="#FF5F57" Offset="0.0"/>
+                <GradientStop Color="#FFBD2E" Offset="0.5"/>
+                <GradientStop Color="#28C840" Offset="1.0"/>
+            </LinearGradientBrush>
+        </Run.Foreground>
+    </Run>
+                                        </TextBlock>
+
+                                        <TextBlock x:Name="TxtLockTime"
+                                           Grid.Column="1"
+                                           Text="12:00"
+                                           Visibility="Collapsed"
+                                           Foreground="White"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           TextAlignment="Center"
+                                           HorizontalAlignment="Center"/>
+
+                                <TextBlock x:Name="TxtLockDate"
+                                           Grid.Column="2"
+                                           Text=""
+                                           Foreground="#99FFFFFF"
+                                           FontSize="10"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+
+                            <StackPanel Grid.Row="1"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,0,0">
+                                <TextBlock x:Name="TxtLockLargeTime"
+                                           Text="12:00"
+                                           Foreground="White"
+                                           FontSize="36"
+                                           FontWeight="Light"
+                                           TextAlignment="Center"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="TxtLockNowPlaying"
+                                           Text="Locked"
+                                           Visibility="Collapsed"
+                                           Foreground="#B8FFFFFF"
+                                           FontSize="11"
+                                           TextAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           Width="205"
+                                           Margin="0,-2,0,2"/>
+                                <TextBlock x:Name="TxtLockHint"
+                                           Text="Press center to unlock"
+                                           Foreground="#88FFFFFF"
+                                           FontSize="10"
+                                           TextAlignment="Center"
+                                           Width="220"
+                                           TextWrapping="Wrap"
+                                           LineHeight="12"
+                                           MaxHeight="26"
+                                           Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel x:Name="PasscodePanel"
+                                        Grid.Row="2"
+                                        Visibility="Collapsed"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,0,0,-4">
+                                <ItemsControl x:Name="PasscodeDots" Margin="0,0,0,2">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Ellipse Width="8"
+                                                     Height="8"
+                                                     Margin="4,0"
+                                                     Fill="{Binding}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <UniformGrid Columns="3" Rows="4">
+                                    <Button Content="1" Tag="1" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="2" Tag="2" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="3" Tag="3" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="4" Tag="4" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="5" Tag="5" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="6" Tag="6" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="7" Tag="7" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="8" Tag="8" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="9" Tag="9" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="⌫" Click="PasscodeBackspace_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="0" Tag="0" Click="PasscodeDigit_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                    <Button Content="OK" Click="PasscodeOk_Click" Style="{StaticResource PasscodeButtonStyle}"/>
+                                </UniformGrid>
+
+                                <Button x:Name="BtnPasscodeCancel"
+                                        Content="Cancel"
+                                        Click="PasscodeCancel_Click"
+                                        Width="128"
+                                        Height="22"
+                                        Margin="0,2,0,0"
+                                        Style="{StaticResource PasscodeButtonStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Grid>
+
+                <Border x:Name="ScreenDimOverlay"
+                        Visibility="Collapsed"
+                        Background="Black"
+                        Opacity="0"
+                        IsHitTestVisible="False"/>
+
+            </Grid>
+        </Border>
+        
+        <Border x:Name="IpodBody" 
+                Width="260" Height="170" 
+                Background="{DynamicResource HoverColorBrush}"
+                BorderThickness="0"
+                CornerRadius="0,0,20,20"
+                MouseLeftButtonDown="IpodBody_MouseLeftButtonDown"
+                ToolTipService.IsEnabled="False">
+
+            <ToolTipService.ToolTip>
+                <ToolTip x:Name="IpodToolTip" Background="#222" BorderBrush="White" BorderThickness="1">
+                    <StackPanel Margin="5">
+                        <TextBlock x:Name="TipTitle" Foreground="White" FontWeight="Bold" FontSize="14" Text="No Music"/>
+                        <TextBlock x:Name="TipArtist" Foreground="#BBB" FontSize="12" Text=""/>
+                        <TextBlock x:Name="TipAlbum" Foreground="#888" FontSize="11" FontStyle="Italic" Text=""/>
+                    </StackPanel>
+                </ToolTip>
+            </ToolTipService.ToolTip>
+
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Visibility, ElementName=IpodScreen}" Value="Visible">
+                            <Setter Property="ToolTipService.IsEnabled" Value="False"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Visibility, ElementName=IpodScreen}" Value="Collapsed">
+                            <Setter Property="ToolTipService.IsEnabled" Value="True"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <Grid x:Name="WheelSurface"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Center"
+                  Background="Transparent"
+                  PreviewMouseLeftButtonDown="WheelSurface_PreviewMouseLeftButtonDown"
+                  PreviewMouseMove="WheelSurface_PreviewMouseMove"
+                  PreviewMouseLeftButtonUp="WheelSurface_PreviewMouseLeftButtonUp">
+                <Ellipse x:Name="PlaybackWheel" Width="130" Height="130" Fill="White">
+                    <Ellipse.Effect>
+                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+                    </Ellipse.Effect>
+                </Ellipse>
+
+                <Grid Width="130" Height="130">
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="BtnVolumeUp" Grid.Row="0" Grid.Column="1" Content="+" FontSize="20" Margin="0,0,0,5" FontWeight="Bold" Style="{StaticResource WheelButtonStyle}" Click="VolumeUp_Click"/>
+                    <Button x:Name="BtnVolumeDown" Grid.Row="2" Grid.Column="1" Content="-" FontSize="24" Margin="0,0,0,5" FontWeight="Bold" Style="{StaticResource WheelButtonStyle}" Click="VolumeDown_Click"/>
+                    <Button Grid.Row="1" Grid.Column="0" Content="◀◀" FontSize="12" Style="{StaticResource WheelButtonStyle}" Click="Prev_Click"/>
+                    <Button Grid.Row="1" Grid.Column="2" Content="▶▶" FontSize="12" Style="{StaticResource WheelButtonStyle}" Click="Next_Click"/>
+
+                    <Button x:Name="CenterPlayBtn" Grid.Row="1" Grid.Column="1" Width="40" Height="40" Background="#2c3e50" Click="PlayPause_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Grid>
+                                    <Ellipse Fill="{TemplateBinding Background}"/>
+                                    <TextBlock x:Name="PlayBtnIcon" 
+                                                Text="▶" 
+                                                Foreground="{TemplateBinding Foreground}" 
+                                                VerticalAlignment="Center" 
+                                                HorizontalAlignment="Center" 
+                                                Margin="0,0,0,1"
+                                                FontSize="18"/>
+                                </Grid>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Grid>
+        </Border>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
