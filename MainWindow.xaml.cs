@@ -1377,43 +1377,88 @@ namespace WindowsShuffle
             BootViewScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleOut.Clone());
         }
 
-        private void RevealStartupWindow()
+        //private void RevealStartupWindow()
+        //{
+        //    if (_startupWindowRevealed)
+        //        return;
+
+        //    _startupWindowRevealed = true;
+
+        //    // Close the splash screen.
+        //    if (_splashWindow != null)
+        //    {
+        //        _splashWindow.StopLoadingTimer();
+        //        _splashWindow.Close();
+        //        _splashWindow = null;
+        //    }
+
+        //    ShowInTaskbar = true;
+        //    IsHitTestVisible = true;
+
+        //    // Start the welcome animation only when the main window
+        //    // is ready to become visible.
+        //    StartBootViewIntro();
+
+        //    if (!_delayStartupWindowRevealForAlbumColor)
+        //    {
+        //        Opacity = 1;
+        //        return;
+        //    }
+
+        //    var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
+        //    {
+        //        EasingFunction = new QuadraticEase
+        //        {
+        //            EasingMode = EasingMode.EaseOut
+        //        }
+        //    };
+
+        //    BeginAnimation(Window.OpacityProperty, fadeIn);
+        //}
+
+        private async void RevealStartupWindow()
         {
             if (_startupWindowRevealed)
                 return;
 
             _startupWindowRevealed = true;
 
-            // Close the splash screen.
+            ShowInTaskbar = true;
+            IsHitTestVisible = true;
+
+            // Prepare the welcome animation before revealing the window.
+            StartBootViewIntro();
+
+            if (!_delayStartupWindowRevealForAlbumColor)
+            {
+                Opacity = 1;
+            }
+            else
+            {
+                var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
+                {
+                    EasingFunction = new QuadraticEase
+                    {
+                        EasingMode = EasingMode.EaseOut
+                    }
+                };
+
+                BeginAnimation(Window.OpacityProperty, fadeIn);
+            }
+
+            // Allow WPF to render the main window while the splash is still visible.
+            await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Render);
+
+            // Give Windows time to paint the actual UI.
+            await Task.Delay(_delayStartupWindowRevealForAlbumColor ? 220 : 80);
+
+            // Now that the main window has been rendered, close the splash.
             if (_splashWindow != null)
             {
                 _splashWindow.StopLoadingTimer();
                 _splashWindow.Close();
                 _splashWindow = null;
             }
-
-            ShowInTaskbar = true;
-            IsHitTestVisible = true;
-
-            // Start the welcome animation only when the main window
-            // is ready to become visible.
-            StartBootViewIntro();
-
-            if (!_delayStartupWindowRevealForAlbumColor)
-            {
-                Opacity = 1;
-                return;
-            }
-
-            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
-            {
-                EasingFunction = new QuadraticEase
-                {
-                    EasingMode = EasingMode.EaseOut
-                }
-            };
-
-            BeginAnimation(Window.OpacityProperty, fadeIn);
         }
 
         private async Task ShowShutdownViewAsync()
