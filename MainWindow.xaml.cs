@@ -16,6 +16,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -1285,7 +1286,22 @@ namespace WindowsShuffle
         {
             _bootViewIntroStartedAt = DateTime.UtcNow;
 
-            TxtBootTitle.Text = "Podmix";
+            //TxtBootTitle.Text = "Podmix";
+            // Color the app name label with gradient
+            TxtBootTitle.Inlines.Clear();
+            Run titleRun = new Run("Podmix");
+            titleRun.Foreground = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromRgb(255, 95, 87), 0.0),
+                    new GradientStop(Color.FromRgb(255, 189, 46), 0.5),
+                    new GradientStop(Color.FromRgb(40, 200, 64), 1.0)
+                },
+                new Point(0, 0.5),
+                new Point(1, 0.5)
+            );
+            TxtBootTitle.Inlines.Add(titleRun);
+
             TxtBootSubtitle.Text = "Welcome";
             BootView.Visibility = Visibility.Visible;
             StartBootLoadingAnimation();
@@ -1407,7 +1423,22 @@ namespace WindowsShuffle
             DeviceOffView.Visibility = Visibility.Collapsed;
             LockScreenView.Visibility = Visibility.Collapsed;
 
-            TxtBootTitle.Text = "Podmix";
+            //TxtBootTitle.Text = "Podmix";
+            // Color the app name label with gradient
+            TxtBootTitle.Inlines.Clear();
+            Run titleRun = new Run("Podmix");
+            titleRun.Foreground = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromRgb(255, 95, 87), 0.0),
+                    new GradientStop(Color.FromRgb(255, 189, 46), 0.5),
+                    new GradientStop(Color.FromRgb(40, 200, 64), 1.0)
+                },
+                new Point(0, 0.5),
+                new Point(1, 0.5)
+            );
+            TxtBootTitle.Inlines.Add(titleRun);
+
             TxtBootSubtitle.Text = "Goodbye";
             BootView.Visibility = Visibility.Visible;
             StartBootLoadingAnimation();
@@ -7281,13 +7312,17 @@ namespace WindowsShuffle
 
         private void UpdateNotifyIcon(string text)
         {
+            const string Branding = " | Podmix";
+
+            string fullText = text + Branding;
+
+            // Update the actual window title too.
+            this.Title = fullText;
+
             if (_notifyIcon != null)
             {
-                const string Branding = " | Podmix";
                 const string Ellipsis = "...";
                 const int MaxTotalLength = 63;
-
-                string fullText = text + Branding;
 
                 if (fullText.Length <= MaxTotalLength)
                 {
