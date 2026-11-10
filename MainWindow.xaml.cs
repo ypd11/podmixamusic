@@ -191,6 +191,99 @@ namespace WindowsShuffle
         private double _lastWheelAngle = 0;
         private double _wheelVolumeAccumulator = 0;
 
+        private System.Windows.Forms.ContextMenuStrip _trayContextMenu;
+        private System.Windows.Forms.ToolStripMenuItem _trayPlayPauseItem;
+
+
+        private void InitializeTrayContextMenu()
+        {
+            _trayContextMenu = new System.Windows.Forms.ContextMenuStrip
+            {
+                Renderer = new NativeWin32Menu.NativeToolStripRenderer(NativeWin32Menu.ToolbarTheme.Toolbar)
+            };
+
+            // Playback
+            _trayPlayPauseItem = new System.Windows.Forms.ToolStripMenuItem(
+                isPlaying ? "Pause" : "Play");
+
+            _trayPlayPauseItem.Font = new System.Drawing.Font(
+                _trayContextMenu.Font,
+                System.Drawing.FontStyle.Bold);
+
+            _trayPlayPauseItem.Click += (s, e) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                    PlayPause_Click(null, null)));
+            };
+
+            var showPodmixItem = new System.Windows.Forms.ToolStripMenuItem("Show");
+            showPodmixItem.Click += (s, e) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    RestoreMainWindow();
+                    Activate();
+                }));
+            };
+
+            var previousItem = new System.Windows.Forms.ToolStripMenuItem("Previous");
+            previousItem.Click += (s, e) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                    Prev_Click(null, null)));
+            };
+
+            var nextItem = new System.Windows.Forms.ToolStripMenuItem("Next");
+            nextItem.Click += (s, e) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                    Next_Click(null, null)));
+            };
+
+            // About
+            var aboutItem = new System.Windows.Forms.ToolStripMenuItem("About");
+            aboutItem.Click += (s, e) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    RestoreMainWindow();
+                    ShowAbout();
+                }));
+            };
+
+            // User Guide
+            var guideItem = new System.Windows.Forms.ToolStripMenuItem("User Guide");
+            guideItem.Click += (s, e) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                    Help_Click(null, null)));
+            };
+
+            // Quit
+            var quitItem = new System.Windows.Forms.ToolStripMenuItem("Quit Podmix");
+            quitItem.Click += (s, e) =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                    CleanUpAndExit()));
+            };
+
+            _trayContextMenu.Items.Add(_trayPlayPauseItem);
+            _trayContextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+            _trayContextMenu.Items.Add(showPodmixItem);
+            _trayContextMenu.Items.Add(nextItem);
+            _trayContextMenu.Items.Add(previousItem);           
+
+            _trayContextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+
+            _trayContextMenu.Items.Add(aboutItem);
+            _trayContextMenu.Items.Add(guideItem);
+
+            _trayContextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+
+            _trayContextMenu.Items.Add(quitItem);
+        }
+
+
         private bool InitBass()
         {
             if (EnsureBassDeviceReady(_selectedBassDevice))
@@ -4845,6 +4938,8 @@ namespace WindowsShuffle
         private void UpdateUIStatus(bool isPlaying)
         {
             MenuPlayPause.Header = isPlaying ? "Pause" : "Play";
+            if (_trayPlayPauseItem != null)
+                _trayPlayPauseItem.Text = isPlaying ? "Pause" : "Play";
 
             if (CenterPlayBtn.Template.FindName("PlayBtnIcon", CenterPlayBtn) is TextBlock icon)
             {
@@ -5375,8 +5470,12 @@ namespace WindowsShuffle
             if (_notifyIcon != null)
             {
                 _notifyIcon.Visible = false;
+                _notifyIcon.ContextMenuStrip = null;
                 _notifyIcon.Dispose();
             }
+
+            _trayContextMenu?.Dispose();
+            _trayContextMenu = null;
 
             string tempPath = System.IO.Path.Combine(
                            System.IO.Path.GetTempPath(),
@@ -5436,10 +5535,14 @@ namespace WindowsShuffle
 
             // Initialize the System Tray Icon
             _notifyIcon = new System.Windows.Forms.NotifyIcon();
-            _notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            _notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(
+                System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             _notifyIcon.Visible = false;
             _notifyIcon.Text = "Podmix";
+
+            InitializeTrayContextMenu();
+            _notifyIcon.ContextMenuStrip = _trayContextMenu;
 
             // Double click the tray icon to restore the window
             _notifyIcon.DoubleClick += (s, args1) =>
@@ -8328,7 +8431,10 @@ namespace WindowsShuffle
                     _activeNotificationWindow.Closed += (s, _) =>
                     {
                         if (ReferenceEquals(_activeNotificationWindow, s))
+                        {
                             _activeNotificationWindow = null;
+                            RestoreMainWindow();
+                        }
                     };
                     _activeNotificationWindow.Show();
                 }
@@ -8387,74 +8493,6 @@ namespace WindowsShuffle
                 _notifyIcon.Visible = false;
             };
         }
-
-        //private Uri SaveNotificationImageToFile(BitmapSource bitmap)
-        //{
-        //    try
-        //    {
-        //        if (bitmap == null)
-        //            return null;
-
-        //        Directory.CreateDirectory(NotificationImagesFolder);
-
-        //        string filePath = System.IO.Path.Combine(
-        //            NotificationImagesFolder,
-        //            "now_playing_cover.jpg");
-
-        //        BitmapSource source = bitmap;
-        //        double maxSide = Math.Max(source.PixelWidth, source.PixelHeight);
-        //        if (maxSide > 256)
-        //        {
-        //            double scale = 256 / maxSide;
-        //            source = new TransformedBitmap(source, new ScaleTransform(scale, scale));
-        //        }
-
-        //        var converted = new FormatConvertedBitmap(source, PixelFormats.Bgr24, null, 0);
-        //        using (var fileStream = new System.IO.FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.Read, 4096, FileOptions.WriteThrough))
-        //        {
-        //            BitmapEncoder encoder = new JpegBitmapEncoder { QualityLevel = 88 };
-        //            encoder.Frames.Add(BitmapFrame.Create(converted));
-        //            encoder.Save(fileStream);
-        //            fileStream.Flush(true);
-        //        }
-
-        //        if (!IsNotificationImageReady(filePath))
-        //            return null;
-
-        //        // Toast XML needs a URI-style local path. Passing a raw Windows path can
-        //        // reserve the image slot while Windows fails to resolve the actual file.
-        //        string fileUri = new Uri(filePath, UriKind.Absolute).AbsoluteUri;
-        //        return new Uri(fileUri, UriKind.Absolute);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"Notification image save failed: {ex.Message}");
-        //        return null;
-        //    }
-        //}
-
-        //private bool IsNotificationImageReady(string filePath)
-        //{
-        //    try
-        //    {
-        //        var info = new FileInfo(filePath);
-        //        if (!info.Exists || info.Length == 0)
-        //            return false;
-
-        //        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-        //        {
-        //            var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
-        //            return decoder.Frames.Count > 0 &&
-        //                   decoder.Frames[0].PixelWidth > 0 &&
-        //                   decoder.Frames[0].PixelHeight > 0;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"Notification image verification failed: {ex.Message}");
-        //        return false;
-        //    }
-        //}
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
