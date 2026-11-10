@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="assets/appicon.ico">
+    <title>Podmix Music | User Guide</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            color: #202122;
+            background-color: #ffffff;
+            margin: 0;
+            display: flex;
+        }
+
+        /* Sidebar Navigation */
+        nav {
+            width: 220px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #a2a9b1;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            padding: 15px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+       nav h1 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.4rem;
+            margin: 0 0 15px 0;
+            font-weight: normal;
+            border-bottom: 1px solid #a2a9b1;
+            padding-bottom: 10px;
+        }
+
+        nav h1 img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        nav li {
+            margin-bottom: 10px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #0645ad;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        .sidebar-title-gradient {
+    background: linear-gradient(to right, #FF5F57, #FFBD2E, #28C840);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}
+
+        /* Classic Wiki Style Button */
+        .kofi-button {
+            display: block;
+            background-color: #f8f9fa;
+            color: #202122 !important;
+            text-align: center;
+            padding: 6px 12px;
+            border: 1px solid #a2a9b1;
+            border-radius: 2px;
+            text-decoration: none !important;
+            font-size: 0.85rem;
+            transition: background-color 0.1s, border-color 0.1s;
+        }
+
+        .kofi-button:hover {
+            background-color: #ffffff;
+            border-color: #447ff5;
+            color: #447ff5 !important;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            padding: 30px 50px 80px 50px; /* Extra bottom padding for fixed footer */
+            max-width: 900px;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        h1.section-title {
+            font-family: 'serif';
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #a2a9b1;
+            font-weight: normal;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            border-bottom: 1px solid #a2a9b1;
+            margin-top: 30px;
+            font-weight: normal;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        ul {
+            margin: 10px 0 10px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .kbd-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .kbd-table th, .kbd-table td {
+            border: 1px solid #a2a9b1;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .kbd-table th {
+            background-color: #f8f9fa;
+        }
+
+        .tip-box {
+            background-color: #f8f9fa;
+            border: 1px solid #a2a9b1;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        /* Fixed Footer */
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 220px; /* Offset for sidebar */
+            right: 0;
+            background-color: #ffffff;
+            border-top: 1px solid #a2a9b1;
+            padding: 10px;
+            text-align: center;
+            color: #54595d;
+            font-size: 0.75rem;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h1><img src="assets/appicon.png" alt=""> <span class="sidebar-title-gradient">Podmix</span><span style="font-weight: 300; margin-left: -4px;">Music</span></h1>
+
+    <ul>
+        <li><a onclick="showSection('welcome')">Main Page</a></li>
+        <li><a onclick="showSection('usage')">Getting Started</a></li>
+        <li><a onclick="showSection('download')">Music Downloader</a></li>
+        <li><a onclick="showSection('radio')">Internet Radio</a></li>
+        <li><a onclick="showSection('lyrics')">Lyrics & Search</a></li>
+        <li><a onclick="showSection('look')">Customizing</a></li>
+        <li><a onclick="showSection('shortcuts')">Keyboard Map</a></li>
+        <li><a onclick="showSection('license')">License Agreement</a></li>
+        <li><a onclick="showSection('support')">Support Podmix</a></li>
+    </ul>
+</nav>
+
+<main>
+    <!-- Welcome -->
+<div id="welcome" class="content-section active">
+    <h1 class="section-title">Welcome to Podmix</h1>
+
+    <p>Podmix is a minimalist music player for Windows, built to be fast, clean, and distraction‑free. It brings a modern twist to the classic “iPod Shuffle” experience—simple controls, instant playback, and a focus on the music itself.</p>
+
+    <h2>How It Works</h2>
+    <p>Podmix follows a <strong>Shuffle‑First</strong> philosophy. Instead of managing libraries, sorting folders, or dealing with complicated interfaces, you simply give Podmix your music and it immediately creates a fresh, random sequence for you to enjoy.</p>
+
+    <p>Whether you have a small collection or thousands of songs, Podmix is designed to get out of your way and let you listen.</p>
+
+    <div class="tip-box">
+        <strong>Note:</strong> Podmix is optimized for very large music libraries and can shuffle thousands of tracks instantly without slowing down your computer.
+    </div>
+</div>
+
+    <!-- Usage -->
+<div id="usage" class="content-section">
+    <h1 class="section-title">Getting Started</h1>
+
+    <h2>Adding Your Music</h2>
+    <p>There are two easy ways to start listening:</p>
+    <ul>
+        <li><strong>Drag and Drop:</strong> Grab any folder of music from your computer and drop it onto the player. Podmix will instantly load it and begin playing.</li>
+        <li><strong>Right-Click Menu:</strong> Right-click anywhere on the player and choose “Add Files” or “Add Folder” to browse manually.</li>
+    </ul>
+
+    <h2>Song Ratings</h2>
+    <p>Podmix includes a simple but powerful rating system that helps the player understand your taste. The more you rate your music, the smarter your shuffle becomes.</p>
+
+    <h3>How to Rate a Song</h3>
+    <p>While a song is playing, <strong>double-click the artwork</strong> to open the rating overlay. You’ll see five stars:</p>
+    <ul>
+        <li><strong>Click a star</strong> to set the rating (1–5 stars).</li>
+        <li><strong>Hover over stars</strong> to preview your rating before selecting.</li>
+        <li><strong>Double-click the artwork again</strong> to close the rating view.</li>
+    </ul>
+
+    <h3>How Ratings Affect Playback</h3>
+    <p>Ratings directly influence how Podmix chooses what to play next. Higher-rated songs become more likely to appear earlier in a shuffle, while lower-rated songs appear less often. This creates a personalized listening experience that adapts to you.</p>
+
+    <h3>Smart Shuffle Explained</h3>
+    <p>Every time you reshuffle, Podmix uses a weighted system to decide the order of songs:</p>
+    <ul>
+        <li><strong>5 Stars:</strong> Very likely to play early and often</li>
+        <li><strong>4 Stars:</strong> More likely to play</li>
+        <li><strong>3 Stars:</strong> Neutral</li>
+        <li><strong>2 Stars:</strong> Less likely to play</li>
+        <li><strong>1 Star:</strong> Rarely played</li>
+        <li><strong>Unrated:</strong> Treated as neutral until you rate them</li>
+    </ul>
+
+    <p>This ensures that:</p>
+    <ul>
+        <li><strong>Your favorite songs rise to the top</strong> of each shuffle</li>
+        <li><strong>Every song still has a chance</strong> to appear</li>
+        <li><strong>No song repeats</strong> until the entire playlist has been played</li>
+    </ul>
+
+    <h3>Why Rating Matters</h3>
+    <p>The more songs you rate, the better Podmix understands your taste. Over time, your shuffle becomes uniquely tuned to you—perfect for rediscovering favorites or avoiding songs you don’t enjoy.</p>
+
+    <h3>Instant Re-Shuffle with Ratings</h3>
+    <p>After rating a few songs, you can instantly generate a new personalized order by <strong>double-clicking the control wheel</strong>. Podmix will immediately create a fresh shuffle that prioritizes your highest-rated tracks.</p>
+
+    <h2>Managing Playlists</h2>
+    <p>Podmix remembers what you were listening to. You can save your current shuffle sequence as a playlist to revisit later, or create manual playlists by adding specific songs to a collection.</p>
+
+    <h3>Instant Artist Mix</h3>
+    <p>If a song comes on and you want to hear more from that artist, open the screen view and <strong>right-click the artist’s name</strong>. Podmix will instantly create a playlist of only that artist’s music.</p>
+
+    <h3>Instant Re-Shuffle</h3>
+    <p>If you want to mix things up, simply <strong>double-click anywhere on the control wheel</strong>. The player will immediately generate a brand new random order for your music.</p>
+</div>
+
+    <!-- Music Downloader -->
+    <div id="download" class="content-section">
+        <h1 class="section-title">Music Downloader</h1>
+        <p>Podmix includes a powerful downloader that allows you to save your favorite tracks and playlists directly from YouTube and YouTube Music for offline listening.</p>
+
+        <h2>How to Use</h2>
+        <p>Press the <strong>D</strong> key to open the Music Downloader window. You can toggle between two modes:</p>
+        <ul>
+            <li><strong>Songs Mode:</strong> Type the name of a song or artist to see the top search results. Select the ones you want and add them to your queue.</li>
+            <li><strong>Playlist Mode:</strong> Paste a direct link to a YouTube or YouTube Music playlist. Podmix will fetch all tracks automatically.</li>
+
+            <div class="tip-box">
+                <strong>Note:</strong> When downloading music, it is recommended to use the <strong>Playlist Mode</strong> and YouTube Music playlist links because you will have more control over the results. Using the <strong>Songs Mode</strong> might show unwanted results (e.g. movies, concerts, and the like). If you have a playlist link, either from YouTube or YouTube Music, you will know for a fact that you will be downloading songs.
+            </div>
+        </ul>
+
+        <h2>Playlist Organization</h2>
+        <p>When you download a playlist, Podmix automatically creates a new folder named after the playlist inside your <strong>Podmix Downloads</strong> directory which is located in <strong>C:\Users\YourUsername\Music\Podmix Downloads</strong>. This keeps your library organized and prevents tracks from different albums or collections from getting mixed up.</p>
+        
+        <h2>Automatic MP3 Conversion</h2>
+        <p>The downloader fetches the highest quality audio available. Once a track finishes downloading, the app uses <strong>FFmpeg</strong> to instantly convert the file to high-quality <strong>MP3</strong> format. This ensures maximum compatibility with all your devices. The temporary source files are automatically cleaned up to save space. In case Podmix cannot clean traces of temporary <strong>M4A</strong> format files, you can delete them manually.</p>
+
+        <div class="tip-box">
+            <strong>Why a download might fail:</strong>
+            <p>While the downloader is highly robust, you may occasionally encounter an error. This usually happens for the following reasons:</p>
+            <ul>
+                <li><strong>Privacy Settings:</strong> The playlist must be set to <strong>Public</strong> or <strong>Unlisted</strong>. Private playlists cannot be accessed by the app.</li>
+                <li><strong>Regional Restrictions:</strong> Some official artist tracks are licensed only for specific countries. If the content is blocked in your region, the download will fail.</li>
+                <li><strong>Bot Challenges:</strong> YouTube occasionally triggers security challenges (like CAPTCHAs) on official music albums to prevent automated downloads.</li>
+                <li><strong>Age Restrictions:</strong> Content marked as "18+" or sensitive may require a verified account login, which the downloader does not support for privacy reasons.</li>
+            </ul>
+        </div>
+
+        <h2>External Music Sources</h2>
+        <p>While the built-in downloader is highly convenient, you may occasionally want to download high-quality albums or full discographies from other websites. These options are often superior when it comes to <strong>MP3 Tags (Metadata)</strong>, as the files typically include embedded artist, album, and artwork information that Podmix can read automatically.</p>
+        
+        <p>Recommended external sources:</p>
+        <ul>
+            <li><strong><a href="https://spotmate.online" target="_blank">SpotMate</a>:</strong> Download Spotify songs in MP3 format. Playlist downloads require <strong>Premium</strong> access which you can get by <a href="https://ko-fi.com/spotmate" target="_blank">donating an amount</a> to the developers to keep the service online (may contain Ads).</li>
+            <li><strong><a href="https://www.discografiascompletas.com/" target="_blank">Discografias Completas</a>:</strong> A comprehensive Spanish website for full discographies in different languages (contains Ads).</li>
+            <li><strong><a href="https://discografiascompletasfull.com/" target="_blank">Discografias Completas Full</a>:</strong> Another extensive Spanish website for full music collections in different languages, too (contains Ads).</li>
+            <li><strong><a href="https://homebronco.blogspot.com/" target="_blank">HOME BRONCO</a>:</strong> One more time, a comprehensive Spanish website for downloading discographies in several languages (contains Ads).</li>
+            <li><strong><a href="https://archive.org/details/audio" target="_blank">Internet Archive (Audio)</a>:</strong> A massive library of free, legal audio including live concerts and public domain music.</li>
+            <li><strong><a href="https://darkport.org/" target="_blank">Metal Music Blog (Darkport)</a>:</strong> A dedicated source for metal music fans. (Note: Contains advertisements).</li>
+        </ul>
+
+       <p style="font-size: 0.85rem; color: #54595d; line-height: 1.6; margin-top: 30px; padding-top: 10px; border-top: 1px solid #eaecf0;">
+    <strong style="font-style: italic;">Additional Information:</strong> 
+    Please note that these websites typically provide a password on their page to extract the compressed archives you download. Some links utilize URL shorteners that may require a <strong>VPN connection</strong> to bypass regional blocks or access the destination. If you experience slow speeds once you have passed the advertisements and reached the final download link, you can disconnect your VPN and restart the download to utilize your full connection speed.
+</p>
+
+        <div class="tip-box">
+            <strong>Tip:</strong> Using these external sources is the best way to ensure your library looks perfect. Because these files come with pre-configured tags, Podmix will be able to display your music nicely and show the correct high-resolution covers without needing to search the web for them.
+        </div>
+    </div>
+
+    <!-- Radio -->
+    <div id="radio" class="content-section">
+        <h1 class="section-title">Internet Radio</h1>
+        <p>Podmix allows you to stream thousands of radio stations from around the world.</p>
+
+       <p style="font-size: 0.85rem; color: #54595d; line-height: 1.6; margin-top: 30px; padding-top: 10px; border-top: 1px solid #eaecf0;">
+            The Internet Radio service is powered by <a href="https://www.radio-browser.info/" target="_blank" style="color: #0645ad; text-decoration: none;">radio-browser.info</a>. 
+            Special thanks to the creator, <strong>Alex Segler</strong>, and the community for maintaining this open database. If you can, please consider <a href="https://ko-fi.com/segleralex" target="_blank" style="color: #0645ad; text-decoration: none;">supporting his work</a>.
+       </p>
+
+        
+        <h2>Radio Features</h2>
+        <ul>
+            <li><strong>Live Updates:</strong> Track titles and artists update automatically as the station plays.</li>
+            <li><strong>Smart Artwork:</strong> The player automatically finds the correct album covers for songs playing on the radio.</li>
+            <li><strong>Auto-Reconnect:</strong> If your internet blinks, the player will try to restart the station for you automatically.</li>
+            <li><strong>Block HTTP Streams:</strong> For your security, you can choose to only show radio stations that use secure, encrypted connections. This filters out older, insecure web addresses from your search results to ensure a safer streaming experience.</li>
+        </ul>
+
+        <h2>Recording</h2>
+        <p>You can record any live radio broadcast to listen to later. Right-click the player while a station is playing and choose "Recording." You can save the audio as a high-quality music file directly to your computer.</p>
+
+        <div class="tip-box">
+            <strong>Note:</strong> While you listen to the radio, Podmix automatically searches the internet to try to find the correct song names and album covers. This ensures your radio experience looks just as good as your local music library, even on stations that don't provide their own information. Please note that metadata accuracy depends on the information provided by the radio station and may occasionally vary.
+        </div>
+    </div>
+
+    <!-- Lyrics & Search -->
+    <div id="lyrics" class="content-section">
+        <h1 class="section-title">Lyrics & Search</h1>
+        <h2>Finding Songs</h2>
+        <p>Press the <strong>S</strong> key to open the Search window. You can search through thousands of songs instantly by Title, Artist, or Album automatically.</p>
+
+        <h2>Viewing Lyrics</h2>
+        <p>Press the <strong>L</strong> key to see the lyrics for the current song. If the lyrics are found online, you can choose to save them permanently to your music file so they are always available, even when you are offline.</p>
+    </div>
+
+    <!-- Look -->
+<div id="look" class="content-section">
+    <h1 class="section-title">Customizing the Player</h1>
+
+    <h2>Dynamic Colors</h2>
+    <p>Podmix can automatically match its appearance to the artwork of the song you're playing. Enable <strong>"Extract From Album Cover"</strong> in the settings, and the entire player—along with your desktop notifications—will adapt to the dominant colors of the current track.</p>
+    <p>If you prefer a consistent look, you can also choose from a set of predefined color themes available in the menu.</p>
+
+    <h2>System Tray & Notifications</h2>
+    <p>Click the <strong>Green Button</strong> to hide Podmix from your taskbar. The player will continue running quietly in the system tray near your clock.</p>
+    <p>Whenever a new song starts while the app is minimized or hidden, Podmix will display a small notification so you always know what’s playing without reopening the player.</p>
+</div>
+
+
+    <!-- Shortcuts -->
+    <div id="shortcuts" class="content-section">
+        <h1 class="section-title">Keyboard Map</h1>
+        <table class="kbd-table">
+            <tr><th>Key</th><th>Action</th></tr>
+            <tr><td><code>Space</code></td><td>Play or Pause the music</td></tr>
+            <tr><td><code>Right Arrow</code></td><td>Skip to the next song</td></tr>
+            <tr><td><code>Left Arrow</code></td><td>Go back to the previous song</td></tr>
+            <tr><td><code>Up Arrow</code></td><td>Increase the volume</td></tr>
+            <tr><td><code>Down Arrow</code></td><td>Decrease the volume</td></tr>
+            <tr><td><code>D</code></td><td>Open the Music Downloader</td></tr>
+            <tr><td><code>S</code></td><td>Open the Search window</td></tr>
+            <tr><td><code>R</code></td><td>Open the Internet Radio Search window</td></tr>
+            <tr><td><code>L</code></td><td>Show or hide Lyrics</td></tr>
+            <tr><td><code>T</code></td><td>Switch between Compact and Detailed view</td></tr>
+            <tr><td><code>N</code></td><td>Create a new Playlist</td></tr>
+            <tr><td><code>F</code></td><td>Add or remove a favorite song</td></tr>
+            <tr><td><code>M</code></td><td>Mute the sound</td></tr>
+        </table>
+    </div>
+
+    <!-- License Agreement -->
+<div id="license" class="content-section">
+    <h1 class="section-title">End User License Agreement</h1>
+    <p><strong>Last Updated: May 2026</strong></p>
+<h2>1. Acceptance of Terms</h2>
+<p>By accessing or using Podmix ("the Application"), you agree to be bound by this End User License Agreement ("EULA"). If you do not agree to these terms, please do not use the Application.</p>
+
+<h2>2. License Grant</h2>
+<p>Podmix grants you a personal, non-exclusive, non-transferable, revocable license to use the Application for your personal, non-commercial entertainment purposes, subject to the terms of this agreement.</p>
+
+<h2>3. Third-Party Radio Streams & Metadata</h2>
+<p>Podmix acts as an index and player for third-party radio streams via the radio-browser.info database and retrieves metadata/lyrics from third-party services. We do not host, broadcast, or control the content of these streams or the accuracy of the metadata provided. Availability of stations is subject to the original broadcasters. You agree that Podmix is not liable for any content streamed or displayed through the Application.</p>
+
+<h2>4. Recording & Copyright</h2>
+<p>The Application includes a recording feature. This feature is intended for personal use only (e.g., time-shifting). You agree to comply with all applicable copyright laws in your jurisdiction regarding the recording of broadcast content. You may not redistribute, sell, or commercially exploit recordings made with the Application.</p>
+
+<h2>5. Privacy & Data</h2>
+<p>Podmix prioritizes privacy. We do not require account registration. Your favorites, playlists, playback history, and settings are stored locally on your device. Any internet-based queries (such as radio searches or lyrics fetching) are used solely to provide the requested service and are not stored on our servers.</p>
+
+<h2>6. Disclaimer of Warranties</h2>
+<p>The Application is provided "AS IS" without warranty of any kind. We do not guarantee that the Application will be error-free, uninterrupted, or that specific radio stations or metadata services will remain available.</p>
+
+<h2>7. Limitation of Liability</h2>
+<p>To the maximum extent permitted by law, Podmix shall not be liable for any indirect, incidental, or consequential damages arising out of your use or inability to use the Application.</p>
+
+<h2>8. Contact</h2>
+<p>For questions regarding this EULA, please contact the developer at <a href="mailto:exeinn.info@gmail.com">exeinn.info@gmail.com</a>.</p>
+
+</div>
+
+    <!-- Support Section -->
+<div id="support" class="content-section">
+    <h1 class="section-title">Support Podmix</h1>
+
+    <p>Thank you for using Podmix! This project is built with care and passion, created to offer a clean, minimalist, and distraction‑free way to enjoy your music.</p>
+
+    <p>If Podmix has become part of your daily listening routine and you’d like to support its ongoing development, future updates, and new features, you can help by buying me a coffee. Your support keeps the project alive and free for everyone.</p>
+
+    <p>Have suggestions, feature ideas, or found a bug? I’d love to hear from you. Just send an email to 
+        <a href="mailto:exeinn.info@gmail.com">exeinn.info@gmail.com</a>.
+    </p>
+
+    <p>Your encouragement—whether through feedback or a small contribution—means a lot. Thank you for being part of the Podmix community!</p>
+
+    <div style="margin-top: 30px;">
+        <a href="https://ko-fi.com/exeinn" target="_blank" class="kofi-button" style="display: inline-block; width: auto;">☕ Buy Me a Coffee</a>
+    </div>
+</div>
+
+</main>
+
+<footer>
+    &copy; 2026 Exe Innovate. All rights reserved.
+</footer>
+
+<script>
+    function showSection(sectionId) {
+        const sections = document.querySelectorAll('.content-section');
+        sections.forEach(s => s.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
+        document.querySelector('main').scrollTop = 0;
+    }
+</script>
+
+</body>
+</html>
