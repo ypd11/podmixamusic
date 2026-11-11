@@ -1127,7 +1127,10 @@ namespace WindowsShuffle
         private bool HandleCenterButtonWhileLocked()
         {
             if (_isDevicePoweredOff)
+            {
+                TogglePlayback(false);
                 return true;
+            }
 
             if (!_isDeviceLocked) return false;
 
@@ -3632,6 +3635,11 @@ namespace WindowsShuffle
 
             bool allowHttp = (bool)Config.Get("radio_allow_http");
             MenuAllowHTTP.IsChecked = allowHttp;
+
+            bool classicPlayPauseButton = (bool)Config.Get("classic_play_pause_button");
+            MenuClassicPlayPauseButton.IsChecked = classicPlayPauseButton;
+            CenterPlayBtn.FontSize = classicPlayPauseButton ? 14 : 22;
+
             UpdateRadioBufferMenuChecks();
             EnsureRecordingFolder();
 
@@ -4694,8 +4702,7 @@ namespace WindowsShuffle
             if (!IsMetadataUpdateStillCurrent(path))
                 return;
 
-            //ApplyFallbackMetadata(path);
-            //ApplyFallbackMetadata(path, true);
+            ClearAlbumArt();
 
             try
             {
@@ -4983,9 +4990,14 @@ namespace WindowsShuffle
             if (_trayPlayPauseItem != null)
                 _trayPlayPauseItem.Text = isPlaying ? "Pause" : "Play";
 
-            if (CenterPlayBtn.Template.FindName("PlayBtnIcon", CenterPlayBtn) is TextBlock icon)
+            bool classicPlayPauseButton = (bool)Config.Get("classic_play_pause_button");
+            if (!classicPlayPauseButton)
             {
-                icon.Text = isPlaying ? "❚❚" : "▶";
+                CenterPlayBtn.Content = isPlaying ? "❚❚" : "▶";
+                //if (CenterPlayBtn.Template.FindName("PlayBtnIcon", CenterPlayBtn) is TextBlock icon)
+                //{
+                //    icon.Text = isPlaying ? "❚❚" : "▶";
+                //}
             }
 
             string iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "assets/", isPlaying ? "pause_icon.png" : "play_icon.png");
@@ -6889,46 +6901,30 @@ namespace WindowsShuffle
             }
         }
 
+
         private RadioUnavailableAction ShowRadioUnavailableDialog(string stationName)
         {
-            RadioUnavailableAction action = RadioUnavailableAction.Dismiss;
-
-            var window = new Window
+            var window = new RadioStationUnavailableWindow(stationName)
             {
-                Title = "Station Unavailable",
-                Owner = this,
-                Width = 420,
-                Height = 190,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                ResizeMode = ResizeMode.NoResize,
-                Background = Brushes.White
+                Owner = this
             };
 
-            var panel = new StackPanel { Margin = new Thickness(18) };
-            panel.Children.Add(new TextBlock
-            {
-                Text = $"{stationName} is not answering right now.",
-                FontWeight = FontWeights.SemiBold,
-                FontSize = 15,
-                TextWrapping = TextWrapping.Wrap
-            });
-            panel.Children.Add(new TextBlock
-            {
-                Text = "The stream may be offline, moved, or blocked by the current radio settings.",
-                Margin = new Thickness(0, 8, 0, 16),
-                TextWrapping = TextWrapping.Wrap
-            });
-
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-            buttons.Children.Add(CreateRadioUnavailableButton("Retry", () => action = RadioUnavailableAction.Retry, window));
-            buttons.Children.Add(CreateRadioUnavailableButton("Search Again", () => action = RadioUnavailableAction.SearchAgain, window));
-            buttons.Children.Add(CreateRadioUnavailableButton("Remove Favorite", () => action = RadioUnavailableAction.RemoveFromFavorites, window));
-            buttons.Children.Add(CreateRadioUnavailableButton("Close", () => action = RadioUnavailableAction.Dismiss, window));
-            panel.Children.Add(buttons);
-
-            window.Content = panel;
             window.ShowDialog();
-            return action;
+
+            switch (window.SelectedAction)
+            {
+                case RadioStationUnavailableWindow.UnavailableAction.Retry:
+                    return RadioUnavailableAction.Retry;
+
+                case RadioStationUnavailableWindow.UnavailableAction.SearchAgain:
+                    return RadioUnavailableAction.SearchAgain;
+
+                case RadioStationUnavailableWindow.UnavailableAction.RemoveFromFavorites:
+                    return RadioUnavailableAction.RemoveFromFavorites;
+
+                default:
+                    return RadioUnavailableAction.Dismiss;
+            }
         }
 
         private Button CreateRadioUnavailableButton(string text, Action setAction, Window window)
@@ -8536,12 +8532,248 @@ namespace WindowsShuffle
             };
         }
 
+        //private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        //{
+        //    // Allow Toggle View even when locked or powered off
+        //    if (e.Key == Key.T)
+        //    {
+        //        ToggleDetailedView_Click(null, null);
+        //        e.Handled = true;
+        //        return;
+        //    }
+
+        //    if (!_isDevicePoweredOff)
+        //        ResetScreenSleepTimer();
+
+        //    if (_isDevicePoweredOff || _isDeviceLocked)
+        //    {
+        //        switch (e.Key)
+        //        {
+        //            case Key.Up:
+        //            case Key.VolumeUp:
+        //                VolumeUp_Click(null, null);
+        //                e.Handled = true;
+        //                return;
+        //            case Key.Down:
+        //            case Key.VolumeDown:
+        //                VolumeDown_Click(null, null);
+        //                e.Handled = true;
+        //                return;
+        //            case Key.M:
+        //            case Key.VolumeMute:
+        //                MenuMute.IsChecked = !MenuMute.IsChecked;
+        //                e.Handled = true;
+        //                return;
+        //        }
+        //    }
+
+        //    if (_isDevicePoweredOff)
+        //    {
+        //        e.Handled = true;
+        //        return;
+        //    }
+
+        //    if (_isDeviceLocked)
+        //    {
+        //        if (e.Key == Key.Space || e.Key == Key.MediaPlayPause)
+        //        {
+        //            TogglePlaybackFromLockScreen();
+        //            e.Handled = true;
+        //            return;
+        //        }
+
+        //        if (IsPasscodePanelActive())
+        //        {
+        //            ResetScreenSleepTimer();
+
+        //            string digit = DigitFromKey(e.Key);
+        //            if (digit != null)
+        //            {
+        //                AppendPasscodeDigit(digit);
+        //                e.Handled = true;
+        //                return;
+        //            }
+
+        //            if (e.Key == Key.Back)
+        //            {
+        //                RemovePasscodeDigit();
+        //                e.Handled = true;
+        //                return;
+        //            }
+
+        //            if (e.Key == Key.Enter)
+        //            {
+        //                ProcessPasscodeEntry();
+        //                e.Handled = true;
+        //                return;
+        //            }
+
+        //            if (e.Key == Key.Escape)
+        //            {
+        //                CancelPasscodeFlow();
+        //                e.Handled = true;
+        //                return;
+        //            }
+        //        }
+        //        if (IsPasscodeRequired() && _passcodeMode == PasscodeMode.Unlock)
+        //        {
+        //            ShowPasscodeEntry(false);
+        //            e.Handled = true;
+        //            return;
+        //        }
+
+        //        if (e.Key == Key.Enter || e.Key == Key.Space)
+        //        {
+        //            UnlockDevice();
+        //            e.Handled = true;
+        //            return;
+        //        }
+
+        //        e.Handled = true;
+        //        return;
+        //    }
+
+        //    if (CoverFlowView.Visibility == Visibility.Visible)
+        //    {
+        //        switch (e.Key)
+        //        {
+        //            case Key.Right:
+        //                MoveCoverFlow(1);
+        //                e.Handled = true;
+        //                return;
+        //            case Key.Left:
+        //                MoveCoverFlow(-1);
+        //                e.Handled = true;
+        //                return;
+        //            case Key.Escape:
+        //                BackToPlayer_Click(null, null);
+        //                e.Handled = true;
+        //                return;
+        //        }
+        //    }
+
+        //    switch (e.Key)
+        //    {
+        //        case Key.Space:
+        //            PlayPause_Click(null, null);
+        //            e.Handled = true; 
+        //            break;
+        //        case Key.Right:
+        //            Next_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+        //        case Key.Left:
+        //            Prev_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+        //        case Key.Up:
+        //        case Key.VolumeUp:
+        //            VolumeUp_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+        //        case Key.Down:
+        //        case Key.VolumeDown:
+        //            VolumeDown_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+        //        case Key.M:
+        //        case Key.VolumeMute:
+        //            MenuMute.IsChecked = !MenuMute.IsChecked;
+        //            e.Handled = true;
+        //            break;
+        //        case Key.F:
+        //            MenuFavorite.IsChecked = !MenuFavorite.IsChecked;
+        //            e.Handled = true;
+        //            break;
+        //        case Key.L:
+        //            if (isLyricsMode)
+        //                BackToPlayer_Click(null, null);
+        //            else
+        //                ShowLyrics_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+        //        case Key.S:
+        //            OpenSearch_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+        //        case Key.N:
+        //            NewPlaylist_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+        //        case Key.R:
+        //            OpenRadioSearch_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+        //        case Key.D:
+        //            DownloadMusic_Click(null, null);
+        //            e.Handled = true;
+        //            break;
+
+        //    }
+        //}
+
+
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Reset the screen sleep timer only when the screen is on.
             if (!_isDevicePoweredOff)
                 ResetScreenSleepTimer();
 
-            if (_isDevicePoweredOff || _isDeviceLocked)
+            // Allow Toggle View in every device state.
+            if (e.Key == Key.T)
+            {
+                ToggleDetailedView_Click(null, null);
+                e.Handled = true;
+                return;
+            }
+
+            // SCREEN OFF: Allow only essential music-player controls.
+            if (_isDevicePoweredOff)
+            {
+                switch (e.Key)
+                {
+                    case Key.Space:
+                    case Key.MediaPlayPause:
+                        TogglePlaybackFromLockScreen();
+                        e.Handled = true;
+                        return;
+
+                    case Key.Up:
+                    case Key.VolumeUp:
+                        VolumeUp_Click(null, null);
+                        e.Handled = true;
+                        return;
+
+                    case Key.Down:
+                    case Key.VolumeDown:
+                        VolumeDown_Click(null, null);
+                        e.Handled = true;
+                        return;
+
+                    case Key.M:
+                    case Key.VolumeMute:
+                        MenuMute.IsChecked = !MenuMute.IsChecked;
+                        e.Handled = true;
+                        return;
+
+                    case Key.Left:
+                        Prev_Click(null, null);
+                        e.Handled = true;
+                        return;
+
+                    case Key.Right:
+                        Next_Click(null, null);
+                        e.Handled = true;
+                        return;
+
+                    default:
+                        e.Handled = true;
+                        return;
+                }
+            }
+
+            // DEVICE LOCKED: Preserve playback controls and passcode handling.
+            if (_isDeviceLocked)
             {
                 switch (e.Key)
                 {
@@ -8550,32 +8782,24 @@ namespace WindowsShuffle
                         VolumeUp_Click(null, null);
                         e.Handled = true;
                         return;
+
                     case Key.Down:
                     case Key.VolumeDown:
                         VolumeDown_Click(null, null);
                         e.Handled = true;
                         return;
+
                     case Key.M:
                     case Key.VolumeMute:
                         MenuMute.IsChecked = !MenuMute.IsChecked;
                         e.Handled = true;
                         return;
-                }
-            }
 
-            if (_isDevicePoweredOff)
-            {
-                e.Handled = true;
-                return;
-            }
-
-            if (_isDeviceLocked)
-            {
-                if (e.Key == Key.Space || e.Key == Key.MediaPlayPause)
-                {
-                    TogglePlaybackFromLockScreen();
-                    e.Handled = true;
-                    return;
+                    case Key.Space:
+                    case Key.MediaPlayPause:
+                        TogglePlaybackFromLockScreen();
+                        e.Handled = true;
+                        return;
                 }
 
                 if (IsPasscodePanelActive())
@@ -8611,6 +8835,7 @@ namespace WindowsShuffle
                         return;
                     }
                 }
+
                 if (IsPasscodeRequired() && _passcodeMode == PasscodeMode.Unlock)
                 {
                     ShowPasscodeEntry(false);
@@ -8618,7 +8843,7 @@ namespace WindowsShuffle
                     return;
                 }
 
-                if (e.Key == Key.Enter || e.Key == Key.Space)
+                if (e.Key == Key.Enter)
                 {
                     UnlockDevice();
                     e.Handled = true;
@@ -8629,6 +8854,7 @@ namespace WindowsShuffle
                 return;
             }
 
+            // COVER FLOW navigation.
             if (CoverFlowView.Visibility == Visibility.Visible)
             {
                 switch (e.Key)
@@ -8637,10 +8863,12 @@ namespace WindowsShuffle
                         MoveCoverFlow(1);
                         e.Handled = true;
                         return;
+
                     case Key.Left:
                         MoveCoverFlow(-1);
                         e.Handled = true;
                         return;
+
                     case Key.Escape:
                         BackToPlayer_Click(null, null);
                         e.Handled = true;
@@ -8648,39 +8876,47 @@ namespace WindowsShuffle
                 }
             }
 
+            // NORMAL OPERATION: All regular keyboard shortcuts.
             switch (e.Key)
             {
                 case Key.Space:
                     PlayPause_Click(null, null);
-                    e.Handled = true; 
+                    e.Handled = true;
                     break;
+
                 case Key.Right:
                     Next_Click(null, null);
                     e.Handled = true;
                     break;
+
                 case Key.Left:
                     Prev_Click(null, null);
                     e.Handled = true;
                     break;
+
                 case Key.Up:
                 case Key.VolumeUp:
                     VolumeUp_Click(null, null);
                     e.Handled = true;
                     break;
+
                 case Key.Down:
                 case Key.VolumeDown:
                     VolumeDown_Click(null, null);
                     e.Handled = true;
                     break;
+
                 case Key.M:
                 case Key.VolumeMute:
                     MenuMute.IsChecked = !MenuMute.IsChecked;
                     e.Handled = true;
                     break;
+
                 case Key.F:
                     MenuFavorite.IsChecked = !MenuFavorite.IsChecked;
                     e.Handled = true;
                     break;
+
                 case Key.L:
                     if (isLyricsMode)
                         BackToPlayer_Click(null, null);
@@ -8688,28 +8924,42 @@ namespace WindowsShuffle
                         ShowLyrics_Click(null, null);
                     e.Handled = true;
                     break;
+
                 case Key.S:
                     OpenSearch_Click(null, null);
                     e.Handled = true;
                     break;
+
                 case Key.N:
                     NewPlaylist_Click(null, null);
                     e.Handled = true;
                     break;
+
                 case Key.R:
                     OpenRadioSearch_Click(null, null);
                     e.Handled = true;
                     break;
-                case Key.T:
-                    ToggleDetailedView_Click(null, null);
-                    e.Handled = true;
-                    break;
+
                 case Key.D:
                     DownloadMusic_Click(null, null);
                     e.Handled = true;
                     break;
-
             }
+        }
+
+        private void MenuClassicPlayPauseButton_Unchecked(object sender, RoutedEventArgs e)
+        {
+            CenterPlayBtn.Content = isPlaying ? "❚❚" : "▶";
+            CenterPlayBtn.FontSize = 22;
+            Config.Save("classic_play_pause_button", false);
+        }
+
+        private void MenuClassicPlayPauseButton_Checked(object sender, RoutedEventArgs e)
+        {
+            CenterPlayBtn.Content = "▶❚❚";
+            CenterPlayBtn.FontSize = 14;
+            Config.Save("classic_play_pause_button", true);
+
         }
 
         private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
