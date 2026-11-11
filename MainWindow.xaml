@@ -375,7 +375,7 @@
                   Unchecked="MenuFavorite_Unchecked"/>
 
             <MenuItem x:Name="MenuDiscordPresence" 
-                  Header="Discord Rich Presence" 
+                  Header="Discord Listening Status" 
                   IsCheckable="True"
                   Checked="MenuDiscordPresence_Checked"
                   Unchecked="MenuDiscordPresence_Unchecked"/>

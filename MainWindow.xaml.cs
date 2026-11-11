@@ -408,6 +408,43 @@ namespace WindowsShuffle
             }
         }
 
+
+        private bool IsDiscordInstalled()
+        {
+            string localAppData = Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData);
+
+            string[] discordFolders =
+            {
+                "Discord",
+                "DiscordPTB",
+                "DiscordCanary"
+            };
+
+            foreach (string folder in discordFolders)
+            {
+                string discordPath = Path.Combine(localAppData, folder);
+
+                if (!Directory.Exists(discordPath))
+                    continue;
+
+                string[] installations = Directory.GetDirectories(
+                    discordPath, "app-*");
+
+                foreach (string installation in installations)
+                {
+                    string exePath = Path.Combine(
+                        installation, "Discord.exe");
+
+                    if (File.Exists(exePath))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+
         private void RegisterBassNet()
         {
             if (_bassNetRegistered)
@@ -3490,10 +3527,15 @@ namespace WindowsShuffle
             if (string.IsNullOrWhiteSpace(colorHex))
                 ApplyThemeColor(DefaultThemeColor);
 
+            bool discordInstalled = IsDiscordInstalled();
+            MenuDiscordPresence.Visibility = discordInstalled
+                ? Visibility.Visible
+                : Visibility.Collapsed;
             bool enableDiscord = true;
             try { enableDiscord = (bool)Config.Get("discord_presence"); } catch { }
-            MenuDiscordPresence.IsChecked = enableDiscord;
-            _discord.IsEnabled = enableDiscord;
+            MenuDiscordPresence.IsChecked = enableDiscord && discordInstalled;
+            _discord.IsEnabled = enableDiscord && discordInstalled;
+
 
             int vol = Convert.ToInt32(Config.Get("volume"));
             _playerVolume = Math.Max(0, Math.Min(1, vol / 100.0));
