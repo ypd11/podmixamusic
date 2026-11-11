@@ -1609,18 +1609,39 @@ Foreground="White">
                     <Button Grid.Row="1" Grid.Column="0" Content="◀◀" FontSize="12" Style="{StaticResource WheelButtonStyle}" Click="Prev_Click"/>
                     <Button Grid.Row="1" Grid.Column="2" Content="▶▶" FontSize="12" Style="{StaticResource WheelButtonStyle}" Click="Next_Click"/>
 
-                    <Button x:Name="CenterPlayBtn" Grid.Row="1" Grid.Column="1" Width="54" Height="54" Background="#2c3e50" Click="PlayPause_Click">
+                    <Button x:Name="CenterPlayBtn"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Width="54"
+                            Height="54"
+                            Background="#2c3e50"
+                            Click="PlayPause_Click"
+                            ToolTip="Play / Pause">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Grid>
                                     <Ellipse Fill="{TemplateBinding Background}"/>
-                                    <TextBlock x:Name="PlayBtnIcon" 
-                                                Text="▶" 
-                                                Foreground="{TemplateBinding Foreground}" 
-                                                VerticalAlignment="Center" 
-                                                HorizontalAlignment="Center" 
-                                                Margin="0,0,0,1"
-                                                FontSize="18"/>
+
+                                    <!-- Static iPod-style Play + Pause symbol -->
+                                    <Canvas Width="32"
+                                            Height="22"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                        <Path Data="M0,0 L18,11 L0,22 Z"
+                                              Fill="#C5CBD2"/>
+                                        <Rectangle Canvas.Left="23"
+                                                   Width="5"
+                                                   Height="22"
+                                                   RadiusX="0.5"
+                                                   RadiusY="0.5"
+                                                   Fill="#C5CBD2"/>
+                                        <Rectangle Canvas.Left="30"
+                                                   Width="5"
+                                                   Height="22"
+                                                   RadiusX="0.5"
+                                                   RadiusY="0.5"
+                                                   Fill="#C5CBD2"/>
+                                    </Canvas>
                                 </Grid>
                             </ControlTemplate>
                         </Button.Template>
