@@ -1,0 +1,435 @@
+﻿<Window x:Class="WindowsShuffle.TagEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Edit Track Tags"
+        Width="760"
+        Height="760"
+        MinWidth="700"
+        MinHeight="650"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+
+        <!-- Text fields -->
+        <Style x:Key="TagTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Background" Value="#222222"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#444444"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="9,4"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="border"
+                                        Property="BorderBrush"
+                                        Value="#0A84FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Multiline fields -->
+        <Style x:Key="TagMultilineTextBoxStyle"
+               TargetType="TextBox"
+               BasedOn="{StaticResource TagTextBoxStyle}">
+            <Setter Property="Height" Value="Auto"/>
+            <Setter Property="Padding" Value="9,7"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+        </Style>
+
+        <!-- Field labels -->
+        <Style x:Key="TagLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#D8D8D8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <!-- Action buttons -->
+        <Style x:Key="TagButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Background" Value="#0070BA"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="16">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border"
+                                        Property="Opacity"
+                                        Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border"
+                                        Property="Opacity"
+                                        Value="0.75"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border"
+                                        Property="Opacity"
+                                        Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary buttons -->
+        <Style x:Key="TagSecondaryButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource TagButtonStyle}">
+            <Setter Property="Background" Value="#333333"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Border Background="#1C1C1E"
+            CornerRadius="16"
+            BorderBrush="#38383A"
+            BorderThickness="1.5">
+
+        <Grid Margin="24">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- HEADER -->
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Close button -->
+                <Button Grid.Column="0"
+                        Width="12"
+                        Height="12"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Cursor="Hand"
+                        Click="Cancel_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Ellipse x:Name="circle"
+                                     Fill="#FF5F57"
+                                     Stroke="#E14942"
+                                     StrokeThickness="0.5"/>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="circle"
+                                            Property="Fill"
+                                            Value="#FF7C75"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Center">
+                    <TextBlock Text="Edit Track Tags"
+                               Foreground="White"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+
+                    <TextBlock Text="Edit the information stored in your music file"
+                               Foreground="#8E8E93"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Margin="0,3,0,0"/>
+                </StackPanel>
+
+            </Grid>
+
+            <!-- MAIN CONTENT -->
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="170"/>
+                </Grid.RowDefinitions>
+
+                <!-- ARTWORK + METADATA -->
+                <Grid Grid.Row="0" Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="175"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ARTWORK PANEL -->
+                    <StackPanel Grid.Column="0"
+                                Margin="0,0,20,0">
+
+                        <TextBlock Text="Album Artwork"
+                                   Style="{StaticResource TagLabelStyle}"/>
+
+                        <Border Width="155"
+                                Height="155"
+                                Background="#252527"
+                                BorderBrush="#38383A"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                HorizontalAlignment="Center"
+                                ClipToBounds="True">
+
+                            <Image x:Name="ImgArtwork"
+                                   Stretch="UniformToFill"
+                                   Source="{x:Null}"/>
+
+                        </Border>
+
+                        <Button Content="Change Artwork"
+                                Style="{StaticResource TagSecondaryButtonStyle}"
+                                Margin="0,12,0,7"
+                                Click="ChangeArtwork_Click"/>
+
+                        <Button Content="Remove Artwork"
+                                Style="{StaticResource TagSecondaryButtonStyle}"
+                                Click="RemoveArtwork_Click"/>
+
+                        <TextBlock x:Name="TxtArtworkStatus"
+                                   Text="Current cover"
+                                   Foreground="#8E8E93"
+                                   FontSize="11"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,10,0,0"/>
+
+                    </StackPanel>
+
+                    <!-- METADATA FIELDS -->
+                    <Grid Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- TITLE -->
+                        <StackPanel Grid.Row="0"
+                                    Grid.ColumnSpan="3"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Title"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtTitle"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- ARTIST -->
+                        <StackPanel Grid.Row="1"
+                                    Grid.Column="0"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Artist"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtArtist"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- ALBUM -->
+                        <StackPanel Grid.Row="1"
+                                    Grid.Column="2"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Album"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtAlbum"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- ALBUM ARTIST -->
+                        <StackPanel Grid.Row="2"
+                                    Grid.Column="0"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Album Artist"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtAlbumArtist"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- GENRE -->
+                        <StackPanel Grid.Row="2"
+                                    Grid.Column="2"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Genre"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtGenre"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- COMPOSER -->
+                        <StackPanel Grid.Row="3"
+                                    Grid.Column="0"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Composer"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtComposer"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- YEAR -->
+                        <StackPanel Grid.Row="3"
+                                    Grid.Column="2"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Year"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtYear"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- TRACK -->
+                        <StackPanel Grid.Row="4"
+                                    Grid.Column="0"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Track Number"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtTrack"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- DISC -->
+                        <StackPanel Grid.Row="4"
+                                    Grid.Column="2"
+                                    Margin="0,0,0,11">
+                            <TextBlock Text="Disc Number"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtDisc"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- BPM -->
+                        <StackPanel Grid.Row="5"
+                                    Grid.Column="0">
+                            <TextBlock Text="BPM"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtBpm"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                        <!-- COMMENT -->
+                        <StackPanel Grid.Row="5"
+                                    Grid.Column="2">
+                            <TextBlock Text="Comment"
+                                       Style="{StaticResource TagLabelStyle}"/>
+                            <TextBox x:Name="TxtComment"
+                                     Style="{StaticResource TagTextBoxStyle}"/>
+                        </StackPanel>
+
+                    </Grid>
+                </Grid>
+
+                <!-- LYRICS -->
+                <Grid Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,7">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Lyrics"
+                                   Style="{StaticResource TagLabelStyle}"
+                                   VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="Stored inside the music file"
+                                   Foreground="#77777D"
+                                   FontSize="11"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <TextBox x:Name="TxtLyrics"
+                             Grid.Row="1"
+                             Style="{StaticResource TagMultilineTextBoxStyle}"/>
+
+                </Grid>
+
+            </Grid>
+
+            <!-- FOOTER -->
+            <Grid Grid.Row="2" Margin="0,18,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="TxtStatus"
+                           Text=""
+                           Foreground="#8E8E93"
+                           FontSize="11"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal">
+
+                    <Button Content="Cancel"
+                            Style="{StaticResource TagSecondaryButtonStyle}"
+                            Width="100"
+                            Margin="0,0,8,0"
+                            Click="Cancel_Click"/>
+
+                    <Button Content="Save Changes"
+                            Style="{StaticResource TagButtonStyle}"
+                            Width="125"
+                            Click="Save_Click"/>
+
+                </StackPanel>
+            </Grid>
+
+        </Grid>
+    </Border>
+</Window>

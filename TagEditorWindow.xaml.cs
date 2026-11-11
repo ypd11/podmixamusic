@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using WindowsShuffle.Classes;
+using Microsoft.Win32;
 
 namespace WindowsShuffle
 {
@@ -16,6 +17,7 @@ namespace WindowsShuffle
 
         private byte[] _artworkData;
         private string _artworkMimeType;
+        private bool _artworkChanged;
 
         public TagEditorWindow(
             string filePath,
@@ -128,6 +130,7 @@ namespace WindowsShuffle
 
             _artworkData = metadata.ArtworkData;
             _artworkMimeType = metadata.ArtworkMimeType;
+            _artworkChanged = metadata.ArtworkChanged;
 
             LoadArtwork(_artworkData);
         }
@@ -185,6 +188,7 @@ namespace WindowsShuffle
 
         private void LoadArtwork(byte[] imageData)
         {
+            _artworkChanged = false;
             ImgArtwork.Source = null;
 
             if (imageData == null || imageData.Length == 0)
@@ -241,11 +245,95 @@ namespace WindowsShuffle
 
         private void ChangeArtwork_Click(object sender, RoutedEventArgs e)
         {
-            TxtStatus.Text = "Artwork selection will be implemented shortly.";
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select Album Artwork",
+                Filter =
+                    "Image files (*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff)|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff|" +
+                    "JPEG images (*.jpg;*.jpeg)|*.jpg;*.jpeg|" +
+                    "PNG images (*.png)|*.png|" +
+                    "All files (*.*)|*.*",
+                CheckFileExists = true,
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog(this) != true)
+                return;
+
+            try
+            {
+                byte[] imageData = File.ReadAllBytes(dialog.FileName);
+
+                BitmapImage bitmap;
+
+                using (var stream = new MemoryStream(imageData))
+                {
+                    bitmap = new BitmapImage();
+
+                    bitmap.BeginInit();
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.StreamSource = stream;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+                }
+
+                string extension = Path.GetExtension(dialog.FileName)
+                    .ToLowerInvariant();
+
+                string mimeType;
+
+                switch (extension)
+                {
+                    case ".jpg":
+                    case ".jpeg":
+                        mimeType = "image/jpeg";
+                        break;
+
+                    case ".png":
+                        mimeType = "image/png";
+                        break;
+
+                    case ".bmp":
+                        mimeType = "image/bmp";
+                        break;
+
+                    case ".gif":
+                        mimeType = "image/gif";
+                        break;
+
+                    case ".tif":
+                    case ".tiff":
+                        mimeType = "image/tiff";
+                        break;
+
+                    default:
+                        throw new InvalidDataException("Unsupported image format.");
+                }
+
+                // Stage the new artwork in memory.
+                _artworkData = imageData;
+                _artworkMimeType = mimeType;
+                _artworkChanged = true;
+
+                // Update the preview immediately.
+                ImgArtwork.Source = bitmap;
+
+                TxtArtworkStatus.Text = "New cover selected";
+                TxtStatus.Text = "New artwork staged. Click Save Changes to keep it.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Podmix couldn't load this image.\n\n" + ex.Message,
+                    "Tag Editor",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
         private void RemoveArtwork_Click(object sender, RoutedEventArgs e)
         {
+            _artworkChanged = true;
             _artworkData = null;
             _artworkMimeType = null;
             ImgArtwork.Source = null;
@@ -276,7 +364,8 @@ namespace WindowsShuffle
                     Lyrics = TxtLyrics.Text,
 
                     ArtworkData = _artworkData,
-                    ArtworkMimeType = _artworkMimeType
+                    ArtworkMimeType = _artworkMimeType,
+                    ArtworkChanged = _artworkChanged
                 };
 
                 _tagEditorService.StageMetadata(_filePath, metadata);
