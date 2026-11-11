@@ -1623,7 +1623,7 @@ Foreground="White">
                                     <Ellipse Fill="{TemplateBinding Background}"/>
 
                                     <!-- Static iPod-style Play + Pause symbol -->
-                                    <Canvas Width="32"
+                                    <Canvas Width="35"
                                             Height="22"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center">
