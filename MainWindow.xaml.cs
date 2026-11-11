@@ -70,6 +70,7 @@ namespace WindowsShuffle
         private readonly HashSet<int> _initializedBassDevices = new HashSet<int>();
         private readonly DiscordPresenceManager _discord = new DiscordPresenceManager();
         public System.Windows.Forms.NotifyIcon _notifyIcon;
+        private readonly TagEditorService _tagEditorService = new TagEditorService();
 
         public List<string> playlist = new List<string>();
         private string Root { get; set; } = null;
@@ -8120,6 +8121,34 @@ namespace WindowsShuffle
                 = !isRadioMode;
         }
 
+        private void EditTrackTags_Click(object sender, RoutedEventArgs e)
+        {
+            if (isRadioMode ||
+                string.IsNullOrWhiteSpace(currentFilePath) ||
+                !File.Exists(currentFilePath))
+            {
+                return;
+            }
+
+            try
+            {
+                var editor = new TagEditorWindow(currentFilePath, _tagEditorService)
+                {
+                    Owner = this
+                };
+
+                editor.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Unable to open the Tag Editor.\n\n" + ex.Message,
+                    "Podmix",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
         private void ContextMenu_Opened(object sender, RoutedEventArgs e)
         {
             BtnNext.IsEnabled
@@ -8130,6 +8159,10 @@ namespace WindowsShuffle
 
             MenuCopyRadioUrl.IsEnabled = isRadioMode && !string.IsNullOrWhiteSpace(currentFilePath);
             MenuCopyRadioNowPlaying.IsEnabled = isRadioMode;
+            MenuEditTrackTags.IsEnabled =
+                !isRadioMode &&
+                !string.IsNullOrWhiteSpace(currentFilePath) &&
+                File.Exists(currentFilePath);
 
             if (!isRadioMode)
             {
