@@ -14,7 +14,8 @@
         PreviewMouseDown="Window_PreviewMouseDown"
         PreviewKeyDown="Window_PreviewKeyDown"
         Loaded="Window_Loaded"
-        MouseWheel="Window_MouseWheel">
+        MouseWheel="Window_MouseWheel"
+        PreviewKeyUp="Window_PreviewKeyUp">
 
     <Window.TaskbarItemInfo>
         <TaskbarItemInfo>
@@ -1625,15 +1626,41 @@ Foreground="White">
         Background="#2c3e50"
         BorderThickness="0"
         Click="PlayPause_Click">
+
                                 <Button.Template>
-                                    <ControlTemplate TargetType="Button">
+                                    <ControlTemplate TargetType="{x:Type Button}">
                                         <Grid>
-                                            <Ellipse Fill="{TemplateBinding Background}"/>
+                                            <Ellipse x:Name="ButtonFace"
+                     Fill="{TemplateBinding Background}"/>
+
                                             <ContentPresenter HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"/>
                                         </Grid>
+
+                                        <ControlTemplate.Triggers>
+
+                                            <Trigger Property="Tag" Value="KeyboardPressed">
+                                                <Setter TargetName="ButtonFace"
+            Property="Margin"
+            Value="2"/>
+                                            </Trigger>
+
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsPressed" Value="True"/>
+                                                    <Condition Property="FontSize" Value="14"/>
+                                                </MultiTrigger.Conditions>
+
+                                                <Setter TargetName="ButtonFace"
+            Property="Margin"
+            Value="2"/>
+                                            </MultiTrigger>
+
+                                        </ControlTemplate.Triggers>
                                     </ControlTemplate>
                                 </Button.Template>
+
+
                             </Button>
                         </Grid>
             </Grid>

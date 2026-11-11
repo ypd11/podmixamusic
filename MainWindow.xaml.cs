@@ -8532,187 +8532,6 @@ namespace WindowsShuffle
             };
         }
 
-        //private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
-        //{
-        //    // Allow Toggle View even when locked or powered off
-        //    if (e.Key == Key.T)
-        //    {
-        //        ToggleDetailedView_Click(null, null);
-        //        e.Handled = true;
-        //        return;
-        //    }
-
-        //    if (!_isDevicePoweredOff)
-        //        ResetScreenSleepTimer();
-
-        //    if (_isDevicePoweredOff || _isDeviceLocked)
-        //    {
-        //        switch (e.Key)
-        //        {
-        //            case Key.Up:
-        //            case Key.VolumeUp:
-        //                VolumeUp_Click(null, null);
-        //                e.Handled = true;
-        //                return;
-        //            case Key.Down:
-        //            case Key.VolumeDown:
-        //                VolumeDown_Click(null, null);
-        //                e.Handled = true;
-        //                return;
-        //            case Key.M:
-        //            case Key.VolumeMute:
-        //                MenuMute.IsChecked = !MenuMute.IsChecked;
-        //                e.Handled = true;
-        //                return;
-        //        }
-        //    }
-
-        //    if (_isDevicePoweredOff)
-        //    {
-        //        e.Handled = true;
-        //        return;
-        //    }
-
-        //    if (_isDeviceLocked)
-        //    {
-        //        if (e.Key == Key.Space || e.Key == Key.MediaPlayPause)
-        //        {
-        //            TogglePlaybackFromLockScreen();
-        //            e.Handled = true;
-        //            return;
-        //        }
-
-        //        if (IsPasscodePanelActive())
-        //        {
-        //            ResetScreenSleepTimer();
-
-        //            string digit = DigitFromKey(e.Key);
-        //            if (digit != null)
-        //            {
-        //                AppendPasscodeDigit(digit);
-        //                e.Handled = true;
-        //                return;
-        //            }
-
-        //            if (e.Key == Key.Back)
-        //            {
-        //                RemovePasscodeDigit();
-        //                e.Handled = true;
-        //                return;
-        //            }
-
-        //            if (e.Key == Key.Enter)
-        //            {
-        //                ProcessPasscodeEntry();
-        //                e.Handled = true;
-        //                return;
-        //            }
-
-        //            if (e.Key == Key.Escape)
-        //            {
-        //                CancelPasscodeFlow();
-        //                e.Handled = true;
-        //                return;
-        //            }
-        //        }
-        //        if (IsPasscodeRequired() && _passcodeMode == PasscodeMode.Unlock)
-        //        {
-        //            ShowPasscodeEntry(false);
-        //            e.Handled = true;
-        //            return;
-        //        }
-
-        //        if (e.Key == Key.Enter || e.Key == Key.Space)
-        //        {
-        //            UnlockDevice();
-        //            e.Handled = true;
-        //            return;
-        //        }
-
-        //        e.Handled = true;
-        //        return;
-        //    }
-
-        //    if (CoverFlowView.Visibility == Visibility.Visible)
-        //    {
-        //        switch (e.Key)
-        //        {
-        //            case Key.Right:
-        //                MoveCoverFlow(1);
-        //                e.Handled = true;
-        //                return;
-        //            case Key.Left:
-        //                MoveCoverFlow(-1);
-        //                e.Handled = true;
-        //                return;
-        //            case Key.Escape:
-        //                BackToPlayer_Click(null, null);
-        //                e.Handled = true;
-        //                return;
-        //        }
-        //    }
-
-        //    switch (e.Key)
-        //    {
-        //        case Key.Space:
-        //            PlayPause_Click(null, null);
-        //            e.Handled = true; 
-        //            break;
-        //        case Key.Right:
-        //            Next_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-        //        case Key.Left:
-        //            Prev_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-        //        case Key.Up:
-        //        case Key.VolumeUp:
-        //            VolumeUp_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-        //        case Key.Down:
-        //        case Key.VolumeDown:
-        //            VolumeDown_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-        //        case Key.M:
-        //        case Key.VolumeMute:
-        //            MenuMute.IsChecked = !MenuMute.IsChecked;
-        //            e.Handled = true;
-        //            break;
-        //        case Key.F:
-        //            MenuFavorite.IsChecked = !MenuFavorite.IsChecked;
-        //            e.Handled = true;
-        //            break;
-        //        case Key.L:
-        //            if (isLyricsMode)
-        //                BackToPlayer_Click(null, null);
-        //            else
-        //                ShowLyrics_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-        //        case Key.S:
-        //            OpenSearch_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-        //        case Key.N:
-        //            NewPlaylist_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-        //        case Key.R:
-        //            OpenRadioSearch_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-        //        case Key.D:
-        //            DownloadMusic_Click(null, null);
-        //            e.Handled = true;
-        //            break;
-
-        //    }
-        //}
-
-
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             // Reset the screen sleep timer only when the screen is on.
@@ -8734,6 +8553,8 @@ namespace WindowsShuffle
                 {
                     case Key.Space:
                     case Key.MediaPlayPause:
+                        if (CenterPlayBtn.FontSize == 14)
+                            CenterPlayBtn.Tag = "KeyboardPressed";
                         TogglePlaybackFromLockScreen();
                         e.Handled = true;
                         return;
@@ -8880,6 +8701,8 @@ namespace WindowsShuffle
             switch (e.Key)
             {
                 case Key.Space:
+                    if (CenterPlayBtn.FontSize == 14)
+                        CenterPlayBtn.Tag = "KeyboardPressed";
                     PlayPause_Click(null, null);
                     e.Handled = true;
                     break;
@@ -8945,6 +8768,12 @@ namespace WindowsShuffle
                     e.Handled = true;
                     break;
             }
+        }
+
+        private void Window_PreviewKeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Space)
+                CenterPlayBtn.Tag = null;
         }
 
         private void MenuClassicPlayPauseButton_Unchecked(object sender, RoutedEventArgs e)
