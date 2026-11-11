@@ -427,7 +427,7 @@
                 <MenuItem Header="Recording" SubmenuOpened="RecordingMenuItem_SubmenuOpened">
                     <MenuItem x:Name="MenuRecordMP3" Header="Record as MP3..." Click="RecordMP3_Click"/>
                     <MenuItem x:Name="MenuRecordWAV" Header="Record as WAV..." Click="RecordWAV_Click"/>
-                    <MenuItem Header="Recording Folder..." Click="ChangeRecordingFolder_Click"/>
+                    <MenuItem Header="Change Recording Folder..." Click="ChangeRecordingFolder_Click"/>
                     <MenuItem Header="Open Recording Folder" Click="OpenRecordingFolder_Click"/>
                     <Separator/>
                     <MenuItem x:Name="MenuStopRecording" Header="Stop Recording" IsEnabled="False" Click="StopRecording_Click"/>
