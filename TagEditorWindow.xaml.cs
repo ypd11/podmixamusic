@@ -238,6 +238,29 @@ namespace WindowsShuffle
             }
         }
 
+        private void LookupOnline_Click(object sender, RoutedEventArgs e)
+        {
+            string searchText = TxtTitle.Text;
+
+            if (string.IsNullOrWhiteSpace(searchText))
+                searchText = TxtArtist.Text;
+
+            if (!string.IsNullOrWhiteSpace(TxtAlbum.Text))
+            {
+                if (!string.IsNullOrWhiteSpace(searchText))
+                    searchText += " ";
+
+                searchText += TxtAlbum.Text;
+            }
+
+            var lookupWindow = new TagLookupWindow(searchText)
+            {
+                Owner = this
+            };
+
+            lookupWindow.ShowDialog();
+        }
+
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
             Close();

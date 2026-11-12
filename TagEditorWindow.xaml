@@ -402,22 +402,32 @@
             <!-- FOOTER -->
             <Grid Grid.Row="2" Margin="0,18,0,0">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
+                <Button Grid.Column="0"
+                        Content="Lookup Online"
+                        Style="{StaticResource TagButtonStyle}"
+                        Width="112"
+                        VerticalAlignment="Center"
+                        Margin="0,0,12,0"
+                        Click="LookupOnline_Click"/>
+
                 <TextBlock x:Name="TxtStatus"
+                           Grid.Column="1"
                            Text=""
                            Foreground="#8E8E93"
                            FontSize="11"
                            VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"/>
 
-                <StackPanel Grid.Column="1"
+                <StackPanel Grid.Column="2"
                             Orientation="Horizontal">
 
                     <Button Content="Cancel"
-                            Style="{StaticResource TagSecondaryButtonStyle}"
+                            Style="{StaticResource TagButtonStyle}"
                             Width="100"
                             Margin="0,0,8,0"
                             Click="Cancel_Click"/>
