@@ -5,32 +5,52 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Newtonsoft.Json.Linq;
+using System.Windows.Media.Imaging;
 
 namespace WindowsShuffle
 {
     public partial class TagLookupWindow : Window
     {
         private readonly MusicBrainzService _musicBrainzService;
+        private static readonly HttpClient ArtworkClient = new HttpClient();
 
+        // Keep compatibility with the existing TagEditorWindow call.
         public TagLookupWindow(string initialSearchText)
+            : this(string.Empty, initialSearchText)
+        {
+        }
+
+        public TagLookupWindow(string initialArtist, string initialTitle)
         {
             InitializeComponent();
 
             _musicBrainzService = new MusicBrainzService();
 
-            TxtSearch.Text = initialSearchText ?? string.Empty;
-            TxtSearch.SelectAll();
+            TxtArtist.Text = initialArtist ?? string.Empty;
+            TxtTitle.Text = initialTitle ?? string.Empty;
+
+            TxtTitle.SelectAll();
         }
+
 
         private async void Search_Click(object sender, RoutedEventArgs e)
         {
-            string query = TxtSearch.Text.Trim();
+            string artist = TxtArtist.Text.Trim();
+            string title = TxtTitle.Text.Trim();
 
-            if (string.IsNullOrWhiteSpace(query))
+            if (string.IsNullOrWhiteSpace(artist) ||
+                string.IsNullOrWhiteSpace(title))
             {
-                TxtLookupStatus.Text = "Enter a track, artist, or album to search.";
-                TxtSearch.Focus();
+                TxtLookupStatus.Text =
+                    "Enter both an artist and a track title.";
+
+                if (string.IsNullOrWhiteSpace(artist))
+                    TxtArtist.Focus();
+                else
+                    TxtTitle.Focus();
+
                 return;
             }
 
@@ -40,40 +60,127 @@ namespace WindowsShuffle
 
             try
             {
-                JArray recordings =
-                    await _musicBrainzService.SearchRecordingsAsync(query);
+                JArray releases =
+                    await _musicBrainzService.SearchAlbumReleasesAsync(
+                        artist, title);
 
-                if (recordings.Count == 0)
+                if (releases == null || releases.Count == 0)
                 {
-                    AddEmptyMessage("No matching recordings found.");
+                    AddEmptyMessage("No matching album releases found.");
                     TxtLookupStatus.Text = "No results found.";
                     return;
                 }
 
-                foreach (JObject recording in recordings)
+                foreach (JObject release in releases)
                 {
-                    string title = recording["title"] != null
-                        ? recording["title"].ToString()
-                        : "Unknown title";
+                    string album = release["title"] != null
+                        ? release["title"].ToString()
+                        : "Unknown album";
 
-                    string artist = GetArtistName(recording);
+                    string releaseArtist = GetArtistName(release);
 
-                    string displayText = title + "\n" + artist;
+                    if (releaseArtist == "Unknown artist" &&
+                        release["artist-credit"] == null)
+                    {
+                        releaseArtist = artist;
+                    }
+
+                    string year = string.Empty;
+
+                    if (release["date"] != null)
+                    {
+                        string date = release["date"].ToString();
+                        year = date.Length >= 4
+                            ? date.Substring(0, 4)
+                            : date;
+                    }
+
+                    string artistYear = releaseArtist;
+
+                    if (!string.IsNullOrWhiteSpace(year))
+                        artistYear += "  •  " + year;
+
+                    // Artwork thumbnail
+                    Image artwork = new Image
+                    {
+                        Width = 54,
+                        Height = 54,
+                        Stretch = Stretch.UniformToFill
+                    };
+
+                    Border artworkBorder = new Border
+                    {
+                        Width = 54,
+                        Height = 54,
+                        Background = new SolidColorBrush(
+                            Color.FromRgb(43, 43, 45)),
+                        BorderBrush = new SolidColorBrush(
+                            Color.FromRgb(65, 65, 69)),
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(6),
+                        ClipToBounds = true,
+                        Child = artwork
+                    };
+
+                    // Album information
+                    StackPanel textPanel = new StackPanel
+                    {
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(11, 0, 0, 0)
+                    };
+
+                    TextBlock albumText = new TextBlock
+                    {
+                        Text = album,
+                        FontSize = 14,
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground = Brushes.White,
+                        TextTrimming = TextTrimming.CharacterEllipsis
+                    };
+
+                    TextBlock artistText = new TextBlock
+                    {
+                        Text = artistYear,
+                        FontSize = 11,
+                        Foreground = new SolidColorBrush(
+                            Color.FromRgb(155, 155, 160)),
+                        Margin = new Thickness(0, 4, 0, 0),
+                        TextTrimming = TextTrimming.CharacterEllipsis
+                    };
+
+                    textPanel.Children.Add(albumText);
+                    textPanel.Children.Add(artistText);
+
+                    StackPanel row = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+
+                    row.Children.Add(artworkBorder);
+                    row.Children.Add(textPanel);
 
                     ListBoxItem item = new ListBoxItem
                     {
-                        Content = displayText,
-                        Tag = recording,
-                        Padding = new Thickness(8),
+                        Content = row,
+                        Tag = release,
+                        Padding = new Thickness(7),
                         Margin = new Thickness(0, 2, 0, 2),
-                        Foreground = System.Windows.Media.Brushes.White
+                        Foreground = Brushes.White
                     };
 
                     LstResults.Items.Add(item);
+
+                    // Load artwork asynchronously.
+                    string releaseId = release["id"] != null
+                        ? release["id"].ToString()
+                        : string.Empty;
+
+                    _ = LoadResultArtworkAsync(releaseId, artwork);
                 }
 
                 TxtLookupStatus.Text =
-                    "Found " + recordings.Count + " matching recordings.";
+                    "Found " + releases.Count + " album releases.";
             }
             catch (HttpRequestException)
             {
@@ -98,9 +205,135 @@ namespace WindowsShuffle
             }
         }
 
-        private string GetArtistName(JObject recording)
+        private async void LstResults_SelectionChanged(
+            object sender,
+            SelectionChangedEventArgs e)
         {
-            JArray artistCredits = recording["artist-credit"] as JArray;
+            ListBoxItem selectedItem = LstResults.SelectedItem as ListBoxItem;
+
+            if (selectedItem == null || !(selectedItem.Tag is JObject))
+                return;
+
+            JObject release = (JObject)selectedItem.Tag;
+
+            string releaseId = release["id"] != null
+                ? release["id"].ToString()
+                : string.Empty;
+
+            if (string.IsNullOrWhiteSpace(releaseId))
+                return;
+
+            TxtLookupStatus.Text = "Loading album tracks...";
+            LstPreviewTracks.Items.Clear();
+
+            try
+            {
+                JObject details =
+                    await _musicBrainzService.GetReleaseDetailsAsync(releaseId);
+
+                JArray media = details["media"] as JArray;
+
+                if (media == null || media.Count == 0)
+                {
+                    TxtLookupStatus.Text = "No track listing available.";
+                    return;
+                }
+
+                string matchedTitle = release["matched-recording-title"] != null
+                    ? release["matched-recording-title"].ToString()
+                    : TxtTitle.Text.Trim();
+
+                foreach (JObject medium in media)
+                {
+                    JArray tracks = medium["tracks"] as JArray;
+
+                    if (tracks == null)
+                        continue;
+
+                    foreach (JObject track in tracks)
+                    {
+                        string trackTitle = track["title"] != null
+                            ? track["title"].ToString()
+                            : "Unknown track";
+
+                        string position = track["number"] != null
+                            ? track["number"].ToString()
+                            : string.Empty;
+
+                        bool isMatch = string.Equals(
+                            trackTitle.Trim(),
+                            matchedTitle.Trim(),
+                            StringComparison.OrdinalIgnoreCase);
+
+                        ListBoxItem trackItem = new ListBoxItem
+                        {
+                            Content = position + "  " + trackTitle,
+                            Tag = track,
+                            Padding = new Thickness(5, 3, 5, 3),
+                            Foreground = isMatch
+                                ? Brushes.DeepSkyBlue
+                                : Brushes.LightGray,
+                            FontWeight = isMatch
+                                ? FontWeights.SemiBold
+                                : FontWeights.Normal,
+                            IsSelected = isMatch
+                        };
+
+                        LstPreviewTracks.Items.Add(trackItem);
+                    }
+                }
+
+                TxtLookupStatus.Text =
+                    "Loaded " + LstPreviewTracks.Items.Count + " tracks.";
+            }
+            catch (Exception ex)
+            {
+                TxtLookupStatus.Text =
+                    "Unable to load album tracks: " + ex.Message;
+            }
+        }
+
+
+        private async Task LoadResultArtworkAsync(
+            string releaseId,
+            Image targetImage)
+        {
+            if (string.IsNullOrWhiteSpace(releaseId))
+                return;
+
+            string artworkUrl =
+                "https://coverartarchive.org/release/" +
+                Uri.EscapeDataString(releaseId) +
+                "/front-250";
+
+            try
+            {
+                byte[] imageData =
+                    await ArtworkClient.GetByteArrayAsync(artworkUrl);
+
+                BitmapImage bitmap = new BitmapImage();
+
+                using (System.IO.MemoryStream stream =
+                    new System.IO.MemoryStream(imageData))
+                {
+                    bitmap.BeginInit();
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.StreamSource = stream;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+                }
+
+                targetImage.Source = bitmap;
+            }
+            catch
+            {
+                // Keep the dark placeholder if artwork is unavailable.
+            }
+        }
+
+        private string GetArtistName(JObject item)
+        {
+            JArray artistCredits = item["artist-credit"] as JArray;
 
             if (artistCredits == null || artistCredits.Count == 0)
                 return "Unknown artist";
@@ -138,7 +371,7 @@ namespace WindowsShuffle
             {
                 Content = message,
                 IsEnabled = false,
-                Foreground = System.Windows.Media.Brushes.Gray,
+                Foreground = Brushes.Gray,
                 Padding = new Thickness(8)
             };
 
@@ -149,6 +382,11 @@ namespace WindowsShuffle
         {
             if (e.Key == Key.Enter)
                 Search_Click(sender, new RoutedEventArgs());
+        }
+
+        private void ApplyTags_Click(object sender, RoutedEventArgs e)
+        {
+            // We'll implement this in the next step.
         }
 
         private void Window_MouseLeftButtonDown(
