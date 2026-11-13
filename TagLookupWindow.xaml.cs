@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Newtonsoft.Json.Linq;
 using System.Windows.Media.Imaging;
+using WindowsShuffle.Classes;
 
 namespace WindowsShuffle
 {
@@ -15,6 +16,13 @@ namespace WindowsShuffle
     {
         private readonly MusicBrainzService _musicBrainzService;
         private static readonly HttpClient ArtworkClient = new HttpClient();
+        public PendingMetadata SelectedMetadata { get; private set; }
+
+        private class TrackSelection
+        {
+            public JObject Track { get; set; }
+            public uint Disc { get; set; }
+        }
 
         // Keep compatibility with the existing TagEditorWindow call.
         public TagLookupWindow(string initialSearchText)
@@ -265,10 +273,21 @@ namespace WindowsShuffle
                             matchedTitle.Trim(),
                             StringComparison.OrdinalIgnoreCase);
 
+                        uint discNumber = 1;
+
+                        if (medium["position"] != null)
+                        {
+                            uint.TryParse(medium["position"].ToString(), out discNumber);
+                        }
+
                         ListBoxItem trackItem = new ListBoxItem
                         {
                             Content = position + "  " + trackTitle,
-                            Tag = track,
+                            Tag = new TrackSelection
+                            {
+                                Track = track,
+                                Disc = discNumber
+                            },
                             Padding = new Thickness(5, 3, 5, 3),
                             Foreground = isMatch
                                 ? Brushes.DeepSkyBlue
@@ -293,6 +312,21 @@ namespace WindowsShuffle
             }
         }
 
+        private uint ParseUInt(string value)
+        {
+            uint result;
+
+            return uint.TryParse(value, out result)
+                ? result
+                : 0;
+        }
+
+        private void LstPreviewTracks_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            BtnApplyTags.IsEnabled =
+                LstPreviewTracks.SelectedItem is ListBoxItem &&
+                ((ListBoxItem)LstPreviewTracks.SelectedItem).Tag is TrackSelection;
+        }
 
         private async Task LoadResultArtworkAsync(
             string releaseId,
@@ -378,15 +412,113 @@ namespace WindowsShuffle
             LstResults.Items.Add(item);
         }
 
+        private async Task<byte[]> DownloadArtworkAsync(string releaseId)
+        {
+            if (string.IsNullOrWhiteSpace(releaseId))
+                return null;
+
+            string artworkUrl =
+                "https://coverartarchive.org/release/" +
+                Uri.EscapeDataString(releaseId) +
+                "/front";
+
+            try
+            {
+                return await ArtworkClient.GetByteArrayAsync(artworkUrl);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private void TxtSearch_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
                 Search_Click(sender, new RoutedEventArgs());
         }
 
-        private void ApplyTags_Click(object sender, RoutedEventArgs e)
+        private async void ApplyTags_Click(object sender, RoutedEventArgs e)
         {
-            // We'll implement this in the next step.
+            ListBoxItem albumItem =
+                LstResults.SelectedItem as ListBoxItem;
+
+            ListBoxItem trackItem =
+                LstPreviewTracks.SelectedItem as ListBoxItem;
+
+            if (albumItem == null || trackItem == null)
+                return;
+
+            JObject release = albumItem.Tag as JObject;
+            TrackSelection selection = trackItem.Tag as TrackSelection;
+
+            if (release == null || selection == null)
+                return;
+
+            JObject track = selection.Track;
+
+            string title = track["title"] != null
+                ? track["title"].ToString()
+                : string.Empty;
+
+            string artist = GetArtistName(track);
+
+            if (artist == "Unknown artist" &&
+                track["recording"] != null)
+            {
+                artist = GetArtistName(
+                    track["recording"] as JObject);
+            }
+
+            string albumArtist = GetArtistName(release);
+
+            if (artist == "Unknown artist")
+                artist = albumArtist;
+
+            string album = release["title"] != null
+                ? release["title"].ToString()
+                : string.Empty;
+
+            string year = release["date"] != null
+                ? release["date"].ToString()
+                : string.Empty;
+
+            string trackNumber = track["number"] != null
+                ? track["number"].ToString()
+                : string.Empty;
+
+            SelectedMetadata = new PendingMetadata
+            {
+                Title = title,
+                Artist = artist,
+                Album = album,
+                AlbumArtist = albumArtist,
+                Year = ParseUInt(
+                    year.Length >= 4 ? year.Substring(0, 4) : year),
+                Track = ParseUInt(trackNumber),
+                Disc = selection.Disc
+            };
+
+            DialogResult = true;
+            string releaseId = release["id"] != null
+                ? release["id"].ToString()
+                : string.Empty;
+
+            byte[] artwork = await DownloadArtworkAsync(releaseId);
+            MessageBox.Show(
+    artwork == null
+        ? "Artwork download failed or no cover is available."
+        : "Artwork downloaded successfully: " + artwork.Length + " bytes.",
+    "Artwork Test");
+
+            if (artwork != null && artwork.Length > 0)
+            {
+                SelectedMetadata.ArtworkData = artwork;
+                SelectedMetadata.ArtworkMimeType = "image/jpeg";
+                SelectedMetadata.ArtworkChanged = true;
+            }
+
+            Close();
         }
 
         private void Window_MouseLeftButtonDown(

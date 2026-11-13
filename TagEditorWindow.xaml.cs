@@ -1,12 +1,14 @@
 ﻿
+using Microsoft.Win32;
 using System;
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using WindowsShuffle.Classes;
-using Microsoft.Win32;
 
 namespace WindowsShuffle
 {
@@ -240,25 +242,53 @@ namespace WindowsShuffle
 
         private void LookupOnline_Click(object sender, RoutedEventArgs e)
         {
-            string searchText = TxtTitle.Text;
-
-            if (string.IsNullOrWhiteSpace(searchText))
-                searchText = TxtArtist.Text;
-
-            if (!string.IsNullOrWhiteSpace(TxtAlbum.Text))
-            {
-                if (!string.IsNullOrWhiteSpace(searchText))
-                    searchText += " ";
-
-                searchText += TxtAlbum.Text;
-            }
-
-            var lookupWindow = new TagLookupWindow(searchText)
+            TagLookupWindow lookupWindow = new TagLookupWindow(
+                TxtArtist.Text,
+                TxtTitle.Text)
             {
                 Owner = this
             };
 
-            lookupWindow.ShowDialog();
+            if (lookupWindow.ShowDialog() != true ||
+                lookupWindow.SelectedMetadata == null)
+            {
+                return;
+            }
+
+            PendingMetadata metadata = lookupWindow.SelectedMetadata;
+
+            TxtTitle.Text = metadata.Title;
+            TxtArtist.Text = metadata.Artist;
+            TxtAlbum.Text = metadata.Album;
+            TxtAlbumArtist.Text = metadata.AlbumArtist;
+
+            if (metadata.Year > 0)
+                TxtYear.Text = metadata.Year.ToString();
+
+            if (metadata.Track > 0)
+                TxtTrack.Text = metadata.Track.ToString();
+
+            if (metadata.Disc > 0)
+                TxtDisc.Text = metadata.Disc.ToString();
+
+            TxtStatus.Text = "Online tags loaded. Review before saving.";
+
+            if (metadata.ArtworkChanged &&
+                metadata.ArtworkData != null &&
+                metadata.ArtworkData.Length > 0)
+            {
+                _artworkData = metadata.ArtworkData;
+                _artworkMimeType = metadata.ArtworkMimeType;
+
+                MessageBox.Show(
+                    "Artwork received: " +
+                    (_artworkData == null ? "NULL" : _artworkData.Length + " bytes"),
+                    "Tag Editor Test");
+
+                LoadArtwork(_artworkData);
+
+                _artworkChanged = true;
+            }
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
