@@ -4165,6 +4165,118 @@ namespace WindowsShuffle
             }
         }
 
+
+        private async Task CommitPendingMetadata(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) ||
+                !_tagEditorService.HasPendingMetadata(path))
+            {
+                return;
+            }
+
+            PendingMetadata metadata;
+
+            if (!_tagEditorService.TryGetPendingMetadata(path, out metadata))
+                return;
+
+            // Release the playback stream before accessing the file.
+            if (_localHandle != 0 && IsSamePath(_openedMediaPath, path))
+            {
+                StopLocalPlayback(false);
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+
+            const int maxRetries = 5;
+
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    using (var file = TagLib.File.Create(path))
+                    {
+                        var tag = file.Tag;
+
+                        tag.Title = metadata.Title;
+                        tag.Performers = string.IsNullOrWhiteSpace(metadata.Artist)
+                            ? new string[0]
+                            : new[] { metadata.Artist };
+
+                        tag.Album = metadata.Album;
+                        tag.AlbumArtists = string.IsNullOrWhiteSpace(metadata.AlbumArtist)
+                            ? new string[0]
+                            : new[] { metadata.AlbumArtist };
+
+                        tag.Genres = string.IsNullOrWhiteSpace(metadata.Genre)
+                            ? new string[0]
+                            : new[] { metadata.Genre };
+
+                        tag.Composers = string.IsNullOrWhiteSpace(metadata.Composer)
+                            ? new string[0]
+                            : new[] { metadata.Composer };
+
+                        tag.Year = metadata.Year;
+                        tag.Track = metadata.Track;
+                        tag.Disc = metadata.Disc;
+                        tag.BeatsPerMinute = metadata.Bpm;
+                        tag.Comment = metadata.Comment;
+                        tag.Lyrics = metadata.Lyrics;
+
+                        if (metadata.ArtworkChanged)
+                        {
+                            if (metadata.ArtworkData == null ||
+                                metadata.ArtworkData.Length == 0)
+                            {
+                                tag.Pictures = new TagLib.IPicture[0];
+                            }
+                            else
+                            {
+                                var picture = new TagLib.Picture(
+                                    new TagLib.ByteVector(metadata.ArtworkData));
+
+                                picture.MimeType = metadata.ArtworkMimeType
+                                    ?? "image/jpeg";
+
+                                picture.Type = TagLib.PictureType.FrontCover;
+
+                                tag.Pictures = new TagLib.IPicture[]
+                                {
+                            picture
+                                };
+                            }
+                        }
+
+                        file.Save();
+                    }
+
+                    // Remove pending data only after a successful save.
+                    _tagEditorService.RemovePendingMetadata(path);
+
+                    Debug.WriteLine("Metadata successfully saved: " + path);
+                    return;
+                }
+                catch (IOException ex)
+                {
+                    Debug.WriteLine(
+                        "Metadata save attempt " + (attempt + 1) +
+                        " failed: " + ex.Message);
+
+                    if (attempt < maxRetries - 1)
+                        await Task.Delay(500);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(
+                        "Metadata save failed for '" + path + "': " + ex.Message);
+
+                    return;
+                }
+            }
+
+            // Pending metadata deliberately remains in the service if all retries fail.
+        }
+
         public bool IsInternetAvailable()
         {
             try
@@ -4535,6 +4647,10 @@ namespace WindowsShuffle
 
         private async Task PlayCurrentAsync()
         {
+            // Preserve the track that was playing before changing tracks.
+            string previousTrackPath = currentFilePath;
+
+            await CommitPendingMetadata(previousTrackPath);
             await CommitPendingLyrics();
 
             isRadioMode = false;
@@ -4705,6 +4821,10 @@ namespace WindowsShuffle
 
             ClearAlbumArt();
 
+            PendingMetadata pendingMetadata;
+            bool hasPendingMetadata =
+                _tagEditorService.TryGetPendingMetadata(path, out pendingMetadata);
+
             try
             {
                 string title = System.IO.Path.GetFileNameWithoutExtension(path);
@@ -4733,6 +4853,29 @@ namespace WindowsShuffle
                     }
                 });
 
+                // Pending edits take priority over the metadata stored on disk.
+                if (hasPendingMetadata)
+                {
+                    title = !string.IsNullOrWhiteSpace(pendingMetadata.Title)
+                        ? pendingMetadata.Title
+                        : System.IO.Path.GetFileNameWithoutExtension(path);
+
+                    artist = !string.IsNullOrWhiteSpace(pendingMetadata.AlbumArtist)
+                        ? pendingMetadata.AlbumArtist
+                        : pendingMetadata.Artist;
+
+                    if (string.IsNullOrWhiteSpace(artist))
+                        artist = "Unknown Artist";
+
+                    album = !string.IsNullOrWhiteSpace(pendingMetadata.Album)
+                        ? pendingMetadata.Album
+                        : "Unknown Album";
+
+                    // Use staged artwork only when the user explicitly changed it.
+                    if (pendingMetadata.ArtworkChanged)
+                        embeddedArt = pendingMetadata.ArtworkData;
+                }
+
                 if (!IsMetadataUpdateStillCurrent(path))
                     return;
 
@@ -4757,7 +4900,7 @@ namespace WindowsShuffle
                         ClearAlbumArt();
                     }
                 }
-                else
+                else if (!hasPendingMetadata || !pendingMetadata.ArtworkChanged)
                 {
                     byte[] onlineBin = await GetOnlineCoverAsync(artist, album);
                     if (!IsMetadataUpdateStillCurrent(path))
@@ -8121,7 +8264,7 @@ namespace WindowsShuffle
                 = !isRadioMode;
         }
 
-        private void EditTrackTags_Click(object sender, RoutedEventArgs e)
+        private async void EditTrackTags_Click(object sender, RoutedEventArgs e)
         {
             if (isRadioMode ||
                 string.IsNullOrWhiteSpace(currentFilePath) ||
@@ -8132,12 +8275,20 @@ namespace WindowsShuffle
 
             try
             {
-                var editor = new TagEditorWindow(currentFilePath, _tagEditorService)
+                string editedPath = currentFilePath;
+
+                var editor = new TagEditorWindow(editedPath, _tagEditorService)
                 {
                     Owner = this
                 };
 
                 editor.ShowDialog();
+
+                if (editor.DialogResult == true &&
+                    IsMetadataUpdateStillCurrent(editedPath))
+                {
+                    await UpdateMetadataAsync(editedPath);
+                }
             }
             catch (Exception ex)
             {

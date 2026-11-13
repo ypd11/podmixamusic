@@ -382,6 +382,9 @@
                   Unchecked="MenuDiscordPresence_Unchecked"/>
 
             <MenuItem Header="View Lyrics" Click="ShowLyrics_Click"/>
+            <MenuItem x:Name="MenuEditTrackTags"
+                Header="Edit Track Tags..."
+                Click="EditTrackTags_Click"/>
             <MenuItem x:Name="MenuCoverFlow" Header="Album Flow" Click="ShowCoverFlow_Click" Visibility="Collapsed" IsEnabled="False"/>
 
             <Separator/>
