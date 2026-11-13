@@ -158,31 +158,40 @@
             <Grid Grid.Row="1" Margin="0,0,0,18">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="TxtSearch"
-                         Grid.Column="0"
-                         Style="{StaticResource LookupTextBoxStyle}"
-                         ToolTip="Enter a track, artist, or album" 
-                         KeyDown="TxtSearch_KeyDown"/>
-                <Button 
-                    x:Name="BtnSearch"
-                    Grid.Column="2"
-        Content="Search"
-        Foreground="#0A84FF"
-        FontWeight="SemiBold"
-        FontSize="14"
-        Background="Transparent"
-        Cursor="Hand"
-        Margin="10,0,0,0"
-        Click="Search_Click">
+
+                <TextBox x:Name="TxtArtist"
+             Grid.Column="0"
+             Style="{StaticResource LookupTextBoxStyle}"
+             ToolTip="Enter artist name"
+             KeyDown="TxtSearch_KeyDown"/>
+
+                <TextBox x:Name="TxtTitle"
+             Grid.Column="2"
+             Style="{StaticResource LookupTextBoxStyle}"
+             ToolTip="Enter track title"
+             KeyDown="TxtSearch_KeyDown"/>
+
+                <Button x:Name="BtnSearch"
+            Grid.Column="4"
+            Content="Search"
+            Foreground="#0A84FF"
+            FontWeight="SemiBold"
+            FontSize="14"
+            Background="Transparent"
+            Cursor="Hand"
+            Margin="10,0,0,0"
+            Click="Search_Click">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border Background="Transparent">
                                 <ContentPresenter
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"/>
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
                             </Border>
                         </ControlTemplate>
                     </Button.Template>
@@ -218,7 +227,8 @@
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Foreground="White"
-                                 SelectionMode="Single">
+                                 SelectionMode="Single"
+                                 SelectionChanged="LstResults_SelectionChanged">
                             <ListBoxItem IsEnabled="False" Foreground="#85858B" Padding="8">
                                 Search results will appear here.
                             </ListBoxItem>
@@ -226,40 +236,37 @@
                     </Grid>
                 </Border>
 
+
                 <Border Grid.Column="2"
-                        Background="#222224"
-                        BorderBrush="#38383A"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="14">
-                    <StackPanel>
-                        <TextBlock Text="Preview"
-                                   Foreground="#D8D8D8"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   Margin="0,0,0,12"/>
-                        <Border Width="150"
-                                Height="150"
-                                Background="#2B2B2D"
-                                BorderBrush="#414145"
-                                BorderThickness="1"
-                                CornerRadius="8"
-                                HorizontalAlignment="Center">
-                            <TextBlock Text="♪"
-                                       Foreground="#68686E"
-                                       FontSize="54"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                        </Border>
-                        <TextBlock Text="Select a result to preview its details."
-                                   Foreground="#8E8E93"
-                                   FontSize="12"
-                                   TextWrapping="Wrap"
-                                   TextAlignment="Center"
-                                   Margin="0,14,0,0"/>
-                    </StackPanel>
+        Background="#222224"
+        BorderBrush="#38383A"
+        BorderThickness="1"
+        CornerRadius="8"
+        Padding="14">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Album Tracks"
+                   Foreground="#D8D8D8"
+                   FontSize="12"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12"/>
+
+                        <ListBox x:Name="LstPreviewTracks"
+                 Grid.Row="1"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Foreground="White"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 SelectionChanged="LstPreviewTracks_SelectionChanged"/>
+                    </Grid>
                 </Border>
+
             </Grid>
+
 
             <!-- FOOTER -->
             <Grid Grid.Row="3" Margin="0,18,0,0">
@@ -267,18 +274,33 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+
                 <TextBlock x:Name="TxtLookupStatus"
-                           Text="Ready to search."
-                           Foreground="#8E8E93"
-                           FontSize="11"
-                           VerticalAlignment="Center"
-                           TextTrimming="CharacterEllipsis"/>
-                <Button Grid.Column="1"
-        Content="Close"
-        Style="{StaticResource LookupButtonStyle}"
-        MinWidth="90"
-        Click="Close_Click"/>
+               Text="Ready to search."
+               Foreground="#8E8E93"
+               FontSize="11"
+               VerticalAlignment="Center"
+               TextTrimming="CharacterEllipsis"/>
+
+                <StackPanel Grid.Column="1"
+                Orientation="Horizontal"
+                VerticalAlignment="Center">
+
+                    <Button x:Name="BtnApplyTags"
+                Content="Apply Tags"
+                Style="{StaticResource LookupButtonStyle}"
+                MinWidth="110"
+                Margin="0,0,8,0"
+                IsEnabled="False"
+                Click="ApplyTags_Click"/>
+
+                    <Button Content="Close"
+                Style="{StaticResource LookupSecondaryButtonStyle}"
+                MinWidth="90"
+                Click="Close_Click"/>
+                </StackPanel>
             </Grid>
+
         </Grid>
     </Border>
 </Window>
