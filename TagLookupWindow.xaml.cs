@@ -472,6 +472,9 @@ namespace WindowsShuffle
 
             string albumArtist = GetArtistName(release);
 
+            if (albumArtist == "Unknown artist")
+                albumArtist = TxtArtist.Text.Trim();
+
             if (artist == "Unknown artist")
                 artist = albumArtist;
 
@@ -498,18 +501,12 @@ namespace WindowsShuffle
                 Track = ParseUInt(trackNumber),
                 Disc = selection.Disc
             };
-
-            DialogResult = true;
+            
             string releaseId = release["id"] != null
                 ? release["id"].ToString()
                 : string.Empty;
 
             byte[] artwork = await DownloadArtworkAsync(releaseId);
-            MessageBox.Show(
-    artwork == null
-        ? "Artwork download failed or no cover is available."
-        : "Artwork downloaded successfully: " + artwork.Length + " bytes.",
-    "Artwork Test");
 
             if (artwork != null && artwork.Length > 0)
             {
@@ -518,7 +515,7 @@ namespace WindowsShuffle
                 SelectedMetadata.ArtworkChanged = true;
             }
 
-            Close();
+            DialogResult = true;
         }
 
         private void Window_MouseLeftButtonDown(
