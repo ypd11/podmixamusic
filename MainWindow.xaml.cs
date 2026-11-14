@@ -4363,11 +4363,10 @@ namespace WindowsShuffle
             // Set background to current album art
             ImgLyricsBackground.Source = ImgAlbumArt.Source;
 
-            // View Switching
-            PlayerView.Visibility = Visibility.Collapsed;
-            PlaylistsView.Visibility = Visibility.Collapsed;
-            AboutView.Visibility = Visibility.Collapsed;
-            CoverFlowView.Visibility = Visibility.Collapsed;
+            // Fade out the current view before showing Lyrics.
+            await HideSpecialtyViewsAsync();
+            await AnimateViewOutAsync(PlayerView);
+
             LyricsView.Visibility = Visibility.Visible;
             AnimateViewIn(LyricsView);
 
@@ -6093,7 +6092,7 @@ namespace WindowsShuffle
             ShowAbout();
         }
 
-        private void ShowAbout()
+        private async void ShowAbout()
         {
             bool wasCoverFlowMode = isCoverFlowMode;
             isCoverFlowMode = false;
@@ -6110,16 +6109,16 @@ namespace WindowsShuffle
             if (IpodScreen.Visibility == Visibility.Collapsed)
                 ToggleDetailedView_Click(null, null);
 
-            // Ensure all other specialty views are hidden
-            LyricsView.Visibility = Visibility.Collapsed;
-            PlaylistsView.Visibility = Visibility.Collapsed;
-            CoverFlowView.Visibility = Visibility.Collapsed;
-
             TxtTitle.Visibility = TxtArtist.Visibility = TxtAlbum.Visibility =
             TimeNow.Visibility = TxtCount.Visibility = TimeEnd.Visibility =
             ProgressSlider.Visibility = Visibility.Collapsed;
 
             ImgAboutBackground.Source = ImgAlbumArt.Source;
+
+            // Fade out the current view before showing About.
+            await HideSpecialtyViewsAsync();
+            await AnimateViewOutAsync(PlayerView);
+
             AboutView.Visibility = Visibility.Visible;
             AnimateViewIn(AboutView);
 
@@ -6154,10 +6153,13 @@ namespace WindowsShuffle
             view.BeginAnimation(UIElement.OpacityProperty, fadeAnimation);
         }
 
-        private void AnimateViewOut(FrameworkElement view)
+        private Task AnimateViewOutAsync(FrameworkElement view)
         {
             if (view == null || view.Visibility != Visibility.Visible)
-                return;
+                return Task.CompletedTask;
+
+            TaskCompletionSource<bool> completion =
+                new TaskCompletionSource<bool>();
 
             view.BeginAnimation(UIElement.OpacityProperty, null);
 
@@ -6175,9 +6177,23 @@ namespace WindowsShuffle
                 view.Visibility = Visibility.Collapsed;
                 view.BeginAnimation(UIElement.OpacityProperty, null);
                 view.Opacity = 1;
+
+                completion.TrySetResult(true);
             };
 
             view.BeginAnimation(UIElement.OpacityProperty, fadeAnimation);
+
+            return completion.Task;
+        }
+
+        private async Task HideSpecialtyViewsAsync()
+        {
+            await Task.WhenAll(
+                AnimateViewOutAsync(AboutView),
+                AnimateViewOutAsync(PlaylistsView),
+                AnimateViewOutAsync(LyricsView),
+                AnimateViewOutAsync(CoverFlowView)
+            );
         }
 
         private void CheckUpdates_Click(object sender, RoutedEventArgs e)
@@ -6198,7 +6214,7 @@ namespace WindowsShuffle
         }
 
         // Linked to the "Back to Player" button
-        private void BackToPlayer_Click(object sender, RoutedEventArgs e)
+        private async void BackToPlayer_Click(object sender, RoutedEventArgs e)
         {
             bool wasCoverFlowMode = isCoverFlowMode;
             isCoverFlowMode = false;
@@ -6224,12 +6240,10 @@ namespace WindowsShuffle
                 BtnShowSearch.Visibility = Visibility.Visible;
             }
 
-            AnimateViewOut(AboutView);
-            AnimateViewOut(PlaylistsView);
-            AnimateViewOut(LyricsView);
-            AnimateViewOut(CoverFlowView);
+            await HideSpecialtyViewsAsync();
 
             PlayerView.Visibility = Visibility.Visible; // Ensure main player view is back
+            AnimateViewIn(PlayerView);
 
             // Restore visibility of controls
             TxtTitle.Visibility = TxtArtist.Visibility = TxtAlbum.Visibility =
@@ -6312,10 +6326,9 @@ namespace WindowsShuffle
 
             BtnShowSearch.Visibility = Visibility.Collapsed;
 
-            PlayerView.Visibility = Visibility.Collapsed;
-            PlaylistsView.Visibility = Visibility.Collapsed;
-            LyricsView.Visibility = Visibility.Collapsed;
-            AboutView.Visibility = Visibility.Collapsed;
+            // Fade out the current view before showing Cover Flow.
+            await HideSpecialtyViewsAsync();
+            await AnimateViewOutAsync(PlayerView);
 
             TxtTitle.Visibility = TxtArtist.Visibility = TxtAlbum.Visibility =
             TimeNow.Visibility = TxtCount.Visibility = TimeEnd.Visibility =
@@ -6766,25 +6779,26 @@ namespace WindowsShuffle
             }
         }
 
-        private void ShowPlaylists()
+        private async void ShowPlaylists()
         {
             isCoverFlowMode = false;
 
             if (IpodScreen.Visibility == Visibility.Collapsed)
                 ToggleDetailedView_Click(null, null);
 
-            // Ensure all other specialty views are hidden
-            LyricsView.Visibility = Visibility.Collapsed;
-            AboutView.Visibility = Visibility.Collapsed;
-            CoverFlowView.Visibility = Visibility.Collapsed;
-
             TxtTitle.Visibility = TxtArtist.Visibility = TxtAlbum.Visibility =
             TimeNow.Visibility = TxtCount.Visibility = TimeEnd.Visibility =
             ProgressSlider.Visibility = Visibility.Collapsed;
 
             ImgPlaylistsBackground.Source = ImgAlbumArt.Source;
+
+            // Fade out the current view before showing Playlists.
+            await HideSpecialtyViewsAsync();
+            await AnimateViewOutAsync(PlayerView);
+
             PlaylistsView.Visibility = Visibility.Visible;
             AnimateViewIn(PlaylistsView);
+
             RefreshPlaylistsList();
         }
 
