@@ -894,18 +894,22 @@
                 </Grid>
 
 
+
                         <!-- Apps Launcher View -->
-                        <Grid x:Name="AppsView" Visibility="Collapsed" Background="Transparent">
+                        <Grid x:Name="AppsView"
+      Visibility="Collapsed"
+      Background="Transparent">
+
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="32"/>
                                 <RowDefinition Height="*"/>
-                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="26"/>
                             </Grid.RowDefinitions>
 
                             <!-- Album Artwork Background -->
                             <Grid IsHitTestVisible="False" Grid.RowSpan="3">
                                 <Image x:Name="ImgAppsBackground"
-           Stretch="UniformToFill"/>
+               Stretch="UniformToFill"/>
 
                                 <Border Background="#CC000000"/>
                             </Grid>
@@ -923,77 +927,180 @@
                             <UniformGrid Grid.Row="1"
                  Columns="3"
                  Rows="2"
-                 Margin="8,0,8,0">
+                 Margin="7,2,7,2">
 
-                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <UniformGrid.Resources>
+                                    <!-- Match Saved Playlists hover effect -->
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Padding" Value="2"/>
+                                        <Setter Property="Focusable" Value="False"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="ItemBorder"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="4"
+                                    Margin="1">
+
+                                                        <ContentPresenter
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"/>
+                                                    </Border>
+
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="ItemBorder"
+                                            Property="Background"
+                                            Value="#11FFFFFF"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </UniformGrid.Resources>
+
+                                <!-- Notes -->
+                                <Button>
+                                    <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
                                         <Image Source="pack://siteoforigin:,,,/assets/app_icons/notes.png"
-                       Width="48" Height="48" Stretch="Uniform"/>
-                                        <TextBlock Text="Notes" Foreground="White"
-                           FontSize="10" HorizontalAlignment="Center"/>
+                       Width="44"
+                       Height="44"
+                       Stretch="Uniform"/>
+                                        <TextBlock Text="Notes"
+                           Foreground="White"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Button>
 
-                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Calendar -->
+                                <Button>
+                                    <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
                                         <Image Source="pack://siteoforigin:,,,/assets/app_icons/calendar.png"
-                       Width="48" Height="48" Stretch="Uniform"/>
-                                        <TextBlock Text="Calendar" Foreground="White"
-                           FontSize="10" HorizontalAlignment="Center"/>
+                       Width="44"
+                       Height="44"
+                       Stretch="Uniform"/>
+                                        <TextBlock Text="Calendar"
+                           Foreground="White"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Button>
 
-                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Calculator -->
+                                <Button>
+                                    <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
                                         <Image Source="pack://siteoforigin:,,,/assets/app_icons/calculator.png"
-                       Width="48" Height="48" Stretch="Uniform"/>
-                                        <TextBlock Text="Calculator" Foreground="White"
-                           FontSize="10" HorizontalAlignment="Center"/>
+                       Width="44"
+                       Height="44"
+                       Stretch="Uniform"/>
+                                        <TextBlock Text="Calculator"
+                           Foreground="White"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Button>
 
-                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Clock -->
+                                <Button>
+                                    <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
                                         <Image Source="pack://siteoforigin:,,,/assets/app_icons/clock.png"
-                       Width="48" Height="48" Stretch="Uniform"/>
-                                        <TextBlock Text="Clock" Foreground="White"
-                           FontSize="10" HorizontalAlignment="Center"/>
+                       Width="44"
+                       Height="44"
+                       Stretch="Uniform"/>
+                                        <TextBlock Text="Clock"
+                           Foreground="White"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Button>
 
-                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Reminders -->
+                                <Button>
+                                    <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
                                         <Image Source="pack://siteoforigin:,,,/assets/app_icons/reminders.png"
-                       Width="48" Height="48" Stretch="Uniform"/>
-                                        <TextBlock Text="Reminders" Foreground="White"
-                           FontSize="10" HorizontalAlignment="Center"/>
+                       Width="44"
+                       Height="44"
+                       Stretch="Uniform"/>
+                                        <TextBlock Text="Reminders"
+                           Foreground="White"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Button>
 
-                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Photos -->
+                                <Button>
+                                    <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
                                         <Image Source="pack://siteoforigin:,,,/assets/app_icons/photos.png"
-                       Width="48" Height="48" Stretch="Uniform"/>
-                                        <TextBlock Text="Photos" Foreground="White"
-                           FontSize="10" HorizontalAlignment="Center"/>
+                       Width="44"
+                       Height="44"
+                       Stretch="Uniform"/>
+                                        <TextBlock Text="Photos"
+                           Foreground="White"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Button>
 
                             </UniformGrid>
 
-                            <!-- Back -->
+                            <!-- Back Button -->
                             <Button Grid.Row="2"
             Content="Back"
             Click="BackToPlayer_Click"
             Background="Transparent"
-            Foreground="#52616B"
+            Foreground="White"
             BorderThickness="0"
             FontSize="11"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            Padding="12,2"/>
-                        </Grid>
+            Padding="10,2"
+            Cursor="Hand"
+            Focusable="False">
 
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="BtnBorder"
+                        Background="Transparent"
+                        CornerRadius="5"
+                        Padding="{TemplateBinding Padding}">
+
+                                            <ContentPresenter
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+                                        </Border>
+
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="BtnBorder"
+                                Property="Background"
+                                Value="#33FFFFFF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                        </Grid>
 
                         <!-- Album Flow View -->
                 <Grid x:Name="CoverFlowView" Visibility="Collapsed" Background="Transparent">
