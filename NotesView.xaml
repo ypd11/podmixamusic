@@ -4,51 +4,48 @@
              Background="Transparent">
 
     <Grid Background="#101216">
+
         <Grid.RowDefinitions>
-            <RowDefinition Height="32"/>
+            <!-- Header: same layout as Lyrics -->
+            <RowDefinition Height="34"/>
+
+            <!-- Main content -->
             <RowDefinition Height="*"/>
-            <RowDefinition Height="26"/>
+
+            <!-- Footer -->
+            <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0"
-                Background="#191D23"
-                BorderBrush="#303640"
-                BorderThickness="0,0,0,1">
+        <TextBlock Grid.Row="0"
+                   Text="Notes"
+                   Foreground="White"
+                   FontWeight="Bold"
+                   FontSize="13"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Margin="0,6,0,0"/>
 
-            <Grid Margin="9,0">
-                <TextBlock Text="Notes"
-                           FontSize="14"
-                           FontWeight="Bold"
-                           Foreground="White"
-                           VerticalAlignment="Center"/>
+        <!-- Main content -->
+        <Grid Grid.Row="1"
+              Margin="10,0,10,5">
 
-                <TextBlock Text="NEW"
-                           FontSize="10"
-                           FontWeight="Bold"
-                           Foreground="#69A9E8"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Center"/>
-            </Grid>
-        </Border>
-
-        <!-- Notes content -->
-        <Grid Grid.Row="1" Margin="10">
             <StackPanel VerticalAlignment="Center"
                         HorizontalAlignment="Center">
 
                 <TextBlock Text="No Notes"
-                           FontSize="13"
-                           FontWeight="SemiBold"
                            Foreground="#E6E6E6"
+                           FontWeight="SemiBold"
+                           FontSize="13"
                            HorizontalAlignment="Center"/>
 
                 <TextBlock Text="Your notes will appear here."
-                           FontSize="10"
                            Foreground="#858B95"
+                           FontSize="10"
                            Margin="0,5,0,0"
                            HorizontalAlignment="Center"/>
             </StackPanel>
+
         </Grid>
 
         <!-- Footer -->
@@ -58,43 +55,40 @@
                 BorderThickness="0,1,0,0">
 
             <Button Content="Back"
-                    Click="Back_Click"
-                    Background="Transparent"
-                    Foreground="#D7DCE3"
-                    FontSize="11"
-                    FontWeight="SemiBold"
-                    Cursor="Hand"
-                    Focusable="False"
-                    BorderThickness="0">
+        Click="Back_Click"
+        Background="Transparent"
+        Foreground="White"
+        BorderThickness="0"
+        FontSize="11"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Padding="10,2"
+        Cursor="Hand"
+        Focusable="False">
 
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="BackBorder"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="5"
-                                Margin="1">
+                        <Border x:Name="BtnBorder"
+                    Background="Transparent"
+                    CornerRadius="5"
+                    Padding="{TemplateBinding Padding}">
 
                             <ContentPresenter
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"/>
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"/>
                         </Border>
 
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BackBorder"
-                                        Property="Background"
-                                        Value="#33FFFFFF"/>
-                            </Trigger>
-
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="BackBorder"
-                                        Property="Background"
-                                        Value="#55FFFFFF"/>
+                                <Setter TargetName="BtnBorder"
+                            Property="Background"
+                            Value="#33FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Button.Template>
             </Button>
         </Border>
+
     </Grid>
 </UserControl>
