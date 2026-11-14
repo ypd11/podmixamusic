@@ -4369,6 +4369,7 @@ namespace WindowsShuffle
             AboutView.Visibility = Visibility.Collapsed;
             CoverFlowView.Visibility = Visibility.Collapsed;
             LyricsView.Visibility = Visibility.Visible;
+            AnimateViewIn(LyricsView);
 
             TxtLyrics.Text = "Searching for lyrics...";
 
@@ -6120,6 +6121,7 @@ namespace WindowsShuffle
 
             ImgAboutBackground.Source = ImgAlbumArt.Source;
             AboutView.Visibility = Visibility.Visible;
+            AnimateViewIn(AboutView);
 
             TxtCopyright.Text = $"© {DateTime.Now.Year} Exe Innovate";
 
@@ -6129,6 +6131,53 @@ namespace WindowsShuffle
                 ImgAboutIcon.Source = new BitmapImage(new Uri(iconPath));
             }
             catch { /* Fallback to hidden if extraction fails */ }
+        }
+
+
+        private void AnimateViewIn(FrameworkElement view)
+        {
+            if (view == null)
+                return;
+
+            view.BeginAnimation(UIElement.OpacityProperty, null);
+            view.Opacity = 0;
+
+            DoubleAnimation fadeAnimation = new DoubleAnimation(
+                0, 1, TimeSpan.FromMilliseconds(250))
+            {
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
+            };
+
+            view.BeginAnimation(UIElement.OpacityProperty, fadeAnimation);
+        }
+
+        private void AnimateViewOut(FrameworkElement view)
+        {
+            if (view == null || view.Visibility != Visibility.Visible)
+                return;
+
+            view.BeginAnimation(UIElement.OpacityProperty, null);
+
+            DoubleAnimation fadeAnimation = new DoubleAnimation(
+                view.Opacity, 0, TimeSpan.FromMilliseconds(200))
+            {
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseIn
+                }
+            };
+
+            fadeAnimation.Completed += (s, e) =>
+            {
+                view.Visibility = Visibility.Collapsed;
+                view.BeginAnimation(UIElement.OpacityProperty, null);
+                view.Opacity = 1;
+            };
+
+            view.BeginAnimation(UIElement.OpacityProperty, fadeAnimation);
         }
 
         private void CheckUpdates_Click(object sender, RoutedEventArgs e)
@@ -6175,10 +6224,10 @@ namespace WindowsShuffle
                 BtnShowSearch.Visibility = Visibility.Visible;
             }
 
-            AboutView.Visibility = Visibility.Collapsed;
-            PlaylistsView.Visibility = Visibility.Collapsed;
-            LyricsView.Visibility = Visibility.Collapsed;
-            CoverFlowView.Visibility = Visibility.Collapsed;
+            AnimateViewOut(AboutView);
+            AnimateViewOut(PlaylistsView);
+            AnimateViewOut(LyricsView);
+            AnimateViewOut(CoverFlowView);
 
             PlayerView.Visibility = Visibility.Visible; // Ensure main player view is back
 
@@ -6192,39 +6241,6 @@ namespace WindowsShuffle
         {
             await ShowCoverFlowAsync();
         }
-
-        //private async void BeginCoverFlowBackgroundScan()
-        //{
-        //    if (_isCoverFlowLoading) return;
-
-        //    MenuCoverFlow.Visibility = Visibility.Collapsed;
-        //    MenuCoverFlow.IsEnabled = false;
-        //    _isCoverFlowReady = false;
-
-        //    if (string.IsNullOrEmpty(Root) || !Directory.Exists(Root))
-        //        return;
-
-        //    _isCoverFlowLoading = true;
-
-        //    try
-        //    {
-        //        var albums = await Task.Run(() => ScanCoverFlowAlbums(Root));
-        //        _coverFlowAlbums.Clear();
-        //        _coverFlowAlbums.AddRange(albums);
-        //        _coverFlowIndex = 0;
-        //        _isCoverFlowReady = _coverFlowAlbums.Count > 0;
-
-        //        MenuCoverFlow.Visibility = _isCoverFlowReady ? Visibility.Visible : Visibility.Collapsed;
-        //        MenuCoverFlow.IsEnabled = _isCoverFlowReady;
-
-        //        if (isCoverFlowMode)
-        //            UpdateCoverFlowUI();
-        //    }
-        //    finally
-        //    {
-        //        _isCoverFlowLoading = false;
-        //    }
-        //}
 
         private async void BeginCoverFlowBackgroundScan()
         {
@@ -6307,7 +6323,9 @@ namespace WindowsShuffle
 
             ImgCoverFlowBackground.Source = ImgAlbumArt.Source;
             CoverFlowView.Visibility = Visibility.Visible;
+            AnimateViewIn(CoverFlowView);
             UpdateCoverFlowUI();
+
             await Task.CompletedTask;
         }
 
@@ -6766,6 +6784,7 @@ namespace WindowsShuffle
 
             ImgPlaylistsBackground.Source = ImgAlbumArt.Source;
             PlaylistsView.Visibility = Visibility.Visible;
+            AnimateViewIn(PlaylistsView);
             RefreshPlaylistsList();
         }
 
