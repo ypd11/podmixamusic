@@ -457,7 +457,7 @@ namespace WindowsShuffle
                         "--ffmpeg-location " + QuoteArgument(
                             Path.GetDirectoryName(FfmpegBootstrapper.FfmpegPath)) + " " +
                         "-o " + QuoteArgument(outputTemplate) + " " +
-                        "--print " + QuoteArgument("after_move:__PODMIX_DONE__") + " " +
+                        "--print " + QuoteArgument("before_dl:__PODMIX_TRACK__%(playlist_index)s") + " " +
                         QuoteArgument(item.PlaylistUrl);
                 }
                 else
@@ -489,14 +489,24 @@ namespace WindowsShuffle
 
                 StringBuilder errorOutput = new StringBuilder();
 
+                int currentTrack = 0;
                 await RunYtDlpAsync(
                     arguments,
                     item.Cts.Token,
                     line =>
                     {
-                        if (line.Contains("__PODMIX_DONE__"))
+                        Match trackMatch = Regex.Match(
+                            line,
+                            @"__PODMIX_TRACK__(\d+)");
+
+                        if (trackMatch.Success)
                         {
-                            item.CompletedTracks++;
+                            int.TryParse(trackMatch.Groups[1].Value, out currentTrack);
+
+                            item.StatusText =
+                                "Downloading " + currentTrack +
+                                "/" + item.TotalTracks + "...";
+
                             return;
                         }
 
@@ -512,7 +522,7 @@ namespace WindowsShuffle
                             {
                                 item.StatusText =
                                     "Downloading " +
-                                    Math.Min(item.CompletedTracks + 1, item.TotalTracks) +
+                                    Math.Min(currentTrack, item.TotalTracks) +
                                     "/" + item.TotalTracks +
                                     " (" + percentage + "%)...";
                             }
@@ -532,7 +542,20 @@ namespace WindowsShuffle
                     line =>
                     {
                         errorOutput.AppendLine(line);
+                        Match trackMatch = Regex.Match(
+                            line,
+                            @"__PODMIX_TRACK__(\d+)");
 
+                        if (trackMatch.Success)
+                        {
+                            int.TryParse(trackMatch.Groups[1].Value, out currentTrack);
+
+                            item.StatusText =
+                                "Downloading " + currentTrack +
+                                "/" + item.TotalTracks + "...";
+
+                            return;
+                        }
                         Match match = Regex.Match(
                             line,
                             @"\[download\]\s+(\d+(?:\.\d+)?)%");
@@ -545,7 +568,7 @@ namespace WindowsShuffle
                             {
                                 item.StatusText =
                                     "Downloading " +
-                                    Math.Min(item.CompletedTracks + 1, item.TotalTracks) +
+                                    Math.Min(currentTrack, item.TotalTracks) +
                                     "/" + item.TotalTracks +
                                     " (" + percentage + "%)...";
                             }
@@ -596,6 +619,51 @@ namespace WindowsShuffle
         // YT-DLP PROCESS
         // ---------------------------------------------------------
 
+        private void KillProcessTree(Process process)
+        {
+            if (process == null)
+                return;
+
+            try
+            {
+                if (process.HasExited)
+                    return;
+
+                string taskkillPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.System),
+                    "taskkill.exe");
+
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = taskkillPath,
+                    Arguments = "/PID " + process.Id + " /T /F",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process killer = Process.Start(psi))
+                {
+                    if (killer != null)
+                        killer.WaitForExit();
+                }
+            }
+            catch
+            {
+                try
+                {
+                    if (!process.HasExited)
+                        process.Kill();
+                }
+                catch { }
+            }
+
+            try
+            {
+                if (!process.HasExited)
+                    process.WaitForExit();
+            }
+            catch { }
+        }
 
         private async Task<string> RunYtDlpAsync(
             string arguments,
@@ -644,12 +712,7 @@ namespace WindowsShuffle
                 using (CancellationTokenRegistration registration =
                     cancellationToken.Register(() =>
                     {
-                        try
-                        {
-                            if (!process.HasExited)
-                                process.Kill();
-                        }
-                        catch { }
+                        KillProcessTree(process);
                     }))
                 {
                     await Task.Run(() =>
@@ -658,7 +721,6 @@ namespace WindowsShuffle
                         process.WaitForExit();
                     });
                 }
-
                 cancellationToken.ThrowIfCancellationRequested();
 
                 if (process.ExitCode != 0)
