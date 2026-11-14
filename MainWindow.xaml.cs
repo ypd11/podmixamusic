@@ -4759,6 +4759,9 @@ namespace WindowsShuffle
 
             if (AboutView.Visibility == Visibility.Visible)
                 ImgAboutBackground.Source = ImgAlbumArt.Source;
+
+            if (AppsView.Visibility == Visibility.Visible)
+                ImgAppsBackground.Source = ImgAlbumArt.Source;
         }
 
         private static async Task<byte[]> GetOnlineCoverAsync(string artist, string album)
@@ -6192,7 +6195,8 @@ namespace WindowsShuffle
                 AnimateViewOutAsync(AboutView),
                 AnimateViewOutAsync(PlaylistsView),
                 AnimateViewOutAsync(LyricsView),
-                AnimateViewOutAsync(CoverFlowView)
+                AnimateViewOutAsync(CoverFlowView),
+                AnimateViewOutAsync(AppsView)
             );
         }
 
@@ -8985,6 +8989,21 @@ namespace WindowsShuffle
                     e.Handled = true;
                     break;
             }
+        }
+
+
+        private async void ShowApps_Click(object sender, RoutedEventArgs e)
+        {
+            if (IpodScreen.Visibility == Visibility.Collapsed)
+                ToggleDetailedView_Click(null, null);
+
+            ImgAppsBackground.Source = ImgAlbumArt.Source;
+
+            await HideSpecialtyViewsAsync();
+            await AnimateViewOutAsync(PlayerView);
+
+            AppsView.Visibility = Visibility.Visible;
+            AnimateViewIn(AppsView);
         }
 
         private void Window_PreviewKeyUp(object sender, KeyEventArgs e)

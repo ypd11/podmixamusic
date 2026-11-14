@@ -383,9 +383,10 @@
 
             <MenuItem Header="View Lyrics" Click="ShowLyrics_Click"/>
             <MenuItem x:Name="MenuEditTrackTags"
-                Header="Edit Track Tags..."
-                Click="EditTrackTags_Click"/>
+    Header="Edit Track Tags..."
+    Click="EditTrackTags_Click"/>
             <MenuItem x:Name="MenuCoverFlow" Header="Album Flow" Click="ShowCoverFlow_Click" Visibility="Collapsed" IsEnabled="False"/>
+            <MenuItem Header="Apps" Click="ShowApps_Click"/>
 
             <Separator/>
 
@@ -892,7 +893,109 @@
                     </Grid>
                 </Grid>
 
-                <!-- Album Flow View -->
+
+                        <!-- Apps Launcher View -->
+                        <Grid x:Name="AppsView" Visibility="Collapsed" Background="Transparent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="32"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="30"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Album Artwork Background -->
+                            <Grid IsHitTestVisible="False" Grid.RowSpan="3">
+                                <Image x:Name="ImgAppsBackground"
+           Stretch="UniformToFill"/>
+
+                                <Border Background="#CC000000"/>
+                            </Grid>
+
+                            <!-- Header -->
+                            <TextBlock Grid.Row="0"
+               Text="Apps"
+               Foreground="White"
+               FontSize="14"
+               FontWeight="Bold"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"/>
+
+                            <!-- App Grid -->
+                            <UniformGrid Grid.Row="1"
+                 Columns="3"
+                 Rows="2"
+                 Margin="8,0,8,0">
+
+                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image Source="pack://siteoforigin:,,,/assets/app_icons/notes.png"
+                       Width="48" Height="48" Stretch="Uniform"/>
+                                        <TextBlock Text="Notes" Foreground="White"
+                           FontSize="10" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image Source="pack://siteoforigin:,,,/assets/app_icons/calendar.png"
+                       Width="48" Height="48" Stretch="Uniform"/>
+                                        <TextBlock Text="Calendar" Foreground="White"
+                           FontSize="10" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image Source="pack://siteoforigin:,,,/assets/app_icons/calculator.png"
+                       Width="48" Height="48" Stretch="Uniform"/>
+                                        <TextBlock Text="Calculator" Foreground="White"
+                           FontSize="10" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image Source="pack://siteoforigin:,,,/assets/app_icons/clock.png"
+                       Width="48" Height="48" Stretch="Uniform"/>
+                                        <TextBlock Text="Clock" Foreground="White"
+                           FontSize="10" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image Source="pack://siteoforigin:,,,/assets/app_icons/reminders.png"
+                       Width="48" Height="48" Stretch="Uniform"/>
+                                        <TextBlock Text="Reminders" Foreground="White"
+                           FontSize="10" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image Source="pack://siteoforigin:,,,/assets/app_icons/photos.png"
+                       Width="48" Height="48" Stretch="Uniform"/>
+                                        <TextBlock Text="Photos" Foreground="White"
+                           FontSize="10" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                            </UniformGrid>
+
+                            <!-- Back -->
+                            <Button Grid.Row="2"
+            Content="Back"
+            Click="BackToPlayer_Click"
+            Background="Transparent"
+            Foreground="#52616B"
+            BorderThickness="0"
+            FontSize="11"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="12,2"/>
+                        </Grid>
+
+
+                        <!-- Album Flow View -->
                 <Grid x:Name="CoverFlowView" Visibility="Collapsed" Background="Transparent">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="34"/>
