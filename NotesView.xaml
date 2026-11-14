@@ -10,18 +10,35 @@
             <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <TextBlock Grid.Row="0"
-                   Text="Notes"
-                   Foreground="White"
-                   FontWeight="Bold"
-                   FontSize="13"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Margin="0,6,0,0"/>
+        <!-- LIST HEADER -->
+        <Grid x:Name="ListHeader" Grid.Row="0">
+            <TextBlock Text="Notes"
+                       Foreground="White"
+                       FontWeight="Bold"
+                       FontSize="13"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="0,6,0,0"/>
+        </Grid>
 
-        <!-- Notes list / empty state -->
-        <Grid Grid.Row="1" Margin="8,2,8,5">
+        <!-- EDITOR HEADER -->
+        <Grid x:Name="EditorHeader"
+              Grid.Row="0"
+              Visibility="Collapsed">
+
+            <TextBlock Text="Edit Note"
+                       Foreground="White"
+                       FontWeight="Bold"
+                       FontSize="13"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="0,6,0,0"/>            
+        </Grid>
+
+        <!-- NOTES LIST -->
+        <Grid x:Name="ListPanel"
+              Grid.Row="1"
+              Margin="8,2,8,5">
 
             <TextBlock x:Name="TxtEmpty"
                        Text="No Notes&#10;Your notes will appear here."
@@ -38,91 +55,145 @@
                           HorizontalScrollBarVisibility="Disabled">
 
                 <ItemsControl x:Name="NotesList">
-
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="#191D23"
-                                    BorderBrush="#303640"
-                                    BorderThickness="0,0,0,1"
-                                    Padding="7,5"
-                                    Margin="0,0,0,2">
+                            <Button Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Margin="0,0,0,2"
+                                    HorizontalContentAlignment="Stretch"
+                                    Cursor="Hand"
+                                    Focusable="False"
+                                    Click="NoteItem_Click">
 
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Title}"
-                                               Foreground="#F2F2F2"
-                                               FontSize="11"
-                                               FontWeight="SemiBold"
-                                               TextTrimming="CharacterEllipsis"/>
+                                <Border Background="#191D23"
+                                        BorderBrush="#303640"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="7,5">
 
-                                    <TextBlock Text="{Binding Content}"
-                                               Foreground="#9299A4"
-                                               FontSize="9"
-                                               Margin="0,2,0,0"
-                                               TextTrimming="CharacterEllipsis"
-                                               MaxHeight="13"/>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}"
+                                                   Foreground="#F2F2F2"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
 
-                                    <TextBlock Text="{Binding DateModified, StringFormat='{}{0:MMM d, yyyy}'}"
-                                               Foreground="#626B78"
-                                               FontSize="8"
-                                               Margin="0,3,0,0"/>
-                                </StackPanel>
+                                        <TextBlock Text="{Binding Content}"
+                                                   Foreground="#9299A4"
+                                                   FontSize="9"
+                                                   Margin="0,2,0,0"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   TextWrapping="NoWrap"
+                                                   MaxHeight="13"/>
 
-                            </Border>
+                                        <TextBlock Text="{Binding DateModified, StringFormat='{}{0:MMM d, yyyy}'}"
+                                                   Foreground="#626B78"
+                                                   FontSize="8"
+                                                   Margin="0,3,0,0"/>
+                                    </StackPanel>
+
+                                </Border>
+                            </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
-
                 </ItemsControl>
             </ScrollViewer>
 
-
+            <!-- FLOATING NEW NOTE BUTTON -->
             <Button x:Name="BtnNewNote"
-        Content="+"
-        Width="32"
-        Height="32"
-        HorizontalAlignment="Right"
-        VerticalAlignment="Bottom"
-        Margin="0,0,5,5"
-        Background="#2878D0"
-        Foreground="White"
-        BorderThickness="0"
-        FontSize="23"
-        FontWeight="Light"
-        Cursor="Hand"
-        Focusable="False"
-        Click="NewNote_Click">
+                    Content="+"
+                    Width="32"
+                    Height="32"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,5,5"
+                    Background="#2878D0"
+                    Foreground="White"
+                    BorderThickness="0"
+                    FontSize="23"
+                    FontWeight="Light"
+                    Cursor="Hand"
+                    Focusable="False"
+                    Click="NewNote_Click">
 
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="ButtonBorder"
-                    Background="{TemplateBinding Background}"
-                    CornerRadius="16">
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="16">
+
                             <ContentPresenter
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Margin="0,-2,0,0"/>
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="0,-2,0,0"/>
                         </Border>
 
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBorder"
-                            Property="Background"
-                            Value="#3992ED"/>
+                                        Property="Background"
+                                        Value="#3992ED"/>
                             </Trigger>
 
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBorder"
-                            Property="Opacity"
-                            Value="0.75"/>
+                                        Property="Opacity"
+                                        Value="0.75"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Button.Template>
             </Button>
-
         </Grid>
 
-        <!-- Footer -->
-        <Border Grid.Row="2"
+        <!-- NOTE EDITOR -->
+        <Grid x:Name="EditorPanel"
+              Grid.Row="1"
+              Margin="9,3,9,5"
+              Visibility="Collapsed">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="27"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- NOTE TITLE -->
+            <TextBox x:Name="TxtNoteTitle"
+                     Grid.Row="0"
+                     Background="#191D23"
+                     Foreground="White"
+                     CaretBrush="White"
+                     BorderBrush="#303640"
+                     BorderThickness="0,0,0,1"
+                     FontSize="11"
+                     FontWeight="SemiBold"
+                     Padding="5,3"
+                     VerticalContentAlignment="Center"
+                     TextChanged="NoteTextChanged"
+                     Text="Untitled"
+                     MaxLength="100"/>
+
+            <!-- NOTE CONTENT -->
+            <TextBox x:Name="TxtNoteContent"
+                     Grid.Row="1"
+                     Background="#101216"
+                     Foreground="#E6E8EB"
+                     CaretBrush="White"
+                     BorderThickness="0"
+                     FontSize="10"
+                     Padding="5,7"
+                     AcceptsReturn="True"
+                     AcceptsTab="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Disabled"
+                     SpellCheck.IsEnabled="False"
+                     TextChanged="NoteTextChanged"/>
+        </Grid>
+
+        <!-- LIST FOOTER -->
+        <Border x:Name="ListFooter"
+                Grid.Row="2"
                 Background="#191D23"
                 BorderBrush="#303640"
                 BorderThickness="0,1,0,0">
@@ -161,6 +232,96 @@
                     </ControlTemplate>
                 </Button.Template>
             </Button>
+        </Border>
+
+        <!-- EDITOR FOOTER -->
+        <Border x:Name="EditorFooter"
+        Grid.Row="2"
+        Background="#191D23"
+        BorderBrush="#303640"
+        BorderThickness="0,1,0,0"
+        Visibility="Collapsed">
+
+            <Grid Margin="6,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="TxtSaveStatus"
+                   Grid.Column="0"
+                   Foreground="#858B95"
+                   FontSize="9"
+                   VerticalAlignment="Center"/>
+
+                <Button Grid.Column="1"
+                Content="Back"
+                Click="EditorBack_Click"
+                Background="Transparent"
+                Foreground="White"
+                BorderThickness="0"
+                FontSize="11"
+                Height="18"
+                Padding="10,2"
+                Cursor="Hand"
+                Focusable="False">
+
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="BtnBorder"
+                            Background="Transparent"
+                            CornerRadius="5"
+                            Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                            </Border>
+
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="BtnBorder"
+                                    Property="Background"
+                                    Value="#33FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <Button Grid.Column="2"
+                Content="Delete"
+                Click="DeleteNote_Click"
+                Background="Transparent"
+                Foreground="White"
+                BorderThickness="0"
+                FontSize="11"
+                Height="18"
+                Padding="10,2"
+                Margin="3,0,0,0"
+                Cursor="Hand"
+                Focusable="False">
+
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="BtnBorder"
+                            Background="Transparent"
+                            CornerRadius="5"
+                            Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                            </Border>
+
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="BtnBorder"
+                                    Property="Background"
+                                    Value="#33FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
         </Border>
 
     </Grid>
