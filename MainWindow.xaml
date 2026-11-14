@@ -1105,9 +1105,11 @@
 
                         <!-- Notes App -->
                         <views:NotesView x:Name="NotesAppView"
-            Visibility="Collapsed"
-            Width="254"
-            Height="214"/>
+                 Visibility="Collapsed"
+                 Width="254"
+                 Height="186"
+                 Margin="0,28,0,0"
+                 VerticalAlignment="Top"/>
 
                         <!-- Album Flow View -->
                 <Grid x:Name="CoverFlowView" Visibility="Collapsed" Background="Transparent">
