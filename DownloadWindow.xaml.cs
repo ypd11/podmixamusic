@@ -1,70 +1,88 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using Newtonsoft.Json.Linq;
 using WindowsShuffle.Classes;
-using YoutubeExplode;
-using YoutubeExplode.Search;
-using YoutubeExplode.Videos.Streams;
 
 namespace WindowsShuffle
 {
     public partial class DownloadWindow : Window
     {
-        private readonly YoutubeClient _youtube = new YoutubeClient();
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(3);
 
-        private IAsyncEnumerator<VideoSearchResult> _searchEnumerator;
+        private readonly string _ytDlpPath =
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "yt-dlp.exe");
 
-        public ObservableCollection<DownloadItem> Downloads { get; set; } = new ObservableCollection<DownloadItem>();
-        public ObservableCollection<SearchResultItem> SearchResults { get; set; } = new ObservableCollection<SearchResultItem>();
+        private readonly List<SearchResultItem> _searchCache =
+            new List<SearchResultItem>();
+
+        private int _searchOffset = 0;
+        private const int SearchPageSize = 20;
+
+        public ObservableCollection<DownloadItem> Downloads { get; set; }
+            = new ObservableCollection<DownloadItem>();
+
+        public ObservableCollection<SearchResultItem> SearchResults { get; set; }
+            = new ObservableCollection<SearchResultItem>();
 
         private MainWindow main;
 
         public DownloadWindow(MainWindow main)
         {
             InitializeComponent();
+
             this.main = main;
             Topmost = main.Topmost;
+
             ListDownloads.ItemsSource = Downloads;
             ListResults.ItemsSource = SearchResults;
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left) DragMove();
+            if (e.ChangedButton == MouseButton.Left)
+                DragMove();
         }
 
-        private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
 
         private async void SearchInput_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter) await PerformSearch();
+            if (e.Key == Key.Enter)
+                await PerformSearch();
         }
 
-        private async void DoSearch_Click(object sender, RoutedEventArgs e) => await PerformSearch();
+        private async void DoSearch_Click(object sender, RoutedEventArgs e)
+        {
+            await PerformSearch();
+        }
 
         private void Mode_Checked(object sender, RoutedEventArgs e)
         {
-            if (TxtSearchStatus == null || BtnAddToQueue == null) return;
+            if (TxtSearchStatus == null || BtnAddToQueue == null)
+                return;
 
-            // Fix 1: Clear results immediately when switching modes
             SearchResults.Clear();
+            _searchCache.Clear();
+            _searchOffset = 0;
+
             ResultsView.Visibility = Visibility.Collapsed;
             BtnAddToQueue.Visibility = Visibility.Collapsed;
             BtnLoadMore.Visibility = Visibility.Collapsed;
-
-            if (_searchEnumerator != null)
-            {
-                _ = _searchEnumerator.DisposeAsync();
-                _searchEnumerator = null;
-            }
 
             if (RadPlaylist.IsChecked == true)
             {
@@ -78,80 +96,139 @@ namespace WindowsShuffle
             }
         }
 
+        // ---------------------------------------------------------
+        // SEARCH
+        // ---------------------------------------------------------
+
         private async Task PerformSearch()
         {
             if (!main.IsInternetAvailable())
             {
-                MessageBox.Show(this, "No internet connection.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    this,
+                    "No internet connection.",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+
                 return;
             }
 
-            string query = SearchInput.Text;
-            if (string.IsNullOrWhiteSpace(query)) return;
+            if (!File.Exists(_ytDlpPath))
+            {
+                MessageBox.Show(
+                    this,
+                    "yt-dlp.exe was not found.\n\nPlace yt-dlp.exe in the same folder as Podmix.exe.",
+                    "Missing yt-dlp",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+
+                return;
+            }
+
+            string query = SearchInput.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(query))
+                return;
 
             try
             {
                 SearchInput.IsEnabled = false;
                 TxtSearchStatus.Text = "Searching...";
-                SearchResults.Clear();
-                BtnLoadMore.Visibility = Visibility.Collapsed;
 
-                if (_searchEnumerator != null)
-                {
-                    await _searchEnumerator.DisposeAsync();
-                    _searchEnumerator = null;
-                }
+                SearchResults.Clear();
+                _searchCache.Clear();
+                _searchOffset = 0;
+
+                JObject json;
 
                 if (RadPlaylist.IsChecked == true)
                 {
-                    try
-                    {
-                        var playlist = await _youtube.Playlists.GetAsync(query);
-                        var videos = _youtube.Playlists.GetVideosAsync(playlist.Id);
-                        var enumerator = videos.GetAsyncEnumerator();
+                    string arguments =
+                        "--dump-single-json --flat-playlist --no-warnings --ignore-errors " +
+                        QuoteArgument(query);
 
-                        try
-                        {
-                            while (await enumerator.MoveNextAsync())
-                            {
-                                var video = enumerator.Current;
-                                SearchResults.Add(new SearchResultItem
-                                {
-                                    VideoId = video.Id,
-                                    Title = video.Title,
-                                    Author = video.Author.ChannelTitle,
-                                    ThumbnailUrl = video.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault()?.Url,
-                                    Duration = video.Duration?.ToString(@"mm\:ss") ?? "--:--"
-                                });
-                            }
-                        }
-                        finally { await enumerator.DisposeAsync(); }
+                    string output = await RunYtDlpAsync(
+                        arguments,
+                        CancellationToken.None,
+                        null);
 
-                        TxtSearchStatus.Tag = playlist.Title;
-                        TxtSearchStatus.Text = $"Found Playlist: {playlist.Title} ({SearchResults.Count} songs)";
-                    }
-                    catch
+                    json = JObject.Parse(output);
+
+                    string playlistTitle =
+                        (string)json["title"] ?? "YouTube Playlist";
+
+                    JArray entries = json["entries"] as JArray;
+
+                    if (entries == null || entries.Count == 0)
                     {
-                        TxtSearchStatus.Text = "Invalid playlist URL or private playlist.";
+                        TxtSearchStatus.Text = "No videos found in this playlist.";
                         return;
                     }
+
+                    foreach (JToken entry in entries)
+                    {
+                        SearchResultItem result = ParseSearchResult(entry);
+
+                        if (result != null)
+                            SearchResults.Add(result);
+                    }
+
+                    TxtSearchStatus.Tag = playlistTitle;
+
+                    TxtSearchStatus.Text =
+                        "Found Playlist: " + playlistTitle +
+                        " (" + SearchResults.Count + " songs)";
                 }
                 else
                 {
-                    // Fix 2: Initialize pagination for songs
-                    _searchEnumerator = _youtube.Search.GetVideosAsync(query).GetAsyncEnumerator();
-                    await FetchNextBatch();
+                    string arguments =
+                        "--dump-single-json --flat-playlist --no-warnings " +
+                        "--playlist-end 100 " +
+                        QuoteArgument("ytsearch100:" + query);
+
+                    string output = await RunYtDlpAsync(
+                        arguments,
+                        CancellationToken.None,
+                        null);
+
+                    json = JObject.Parse(output);
+
+                    JArray entries = json["entries"] as JArray;
+
+                    if (entries == null || entries.Count == 0)
+                    {
+                        TxtSearchStatus.Text = "No results found.";
+                        return;
+                    }
+
+                    foreach (JToken entry in entries)
+                    {
+                        SearchResultItem result = ParseSearchResult(entry);
+
+                        if (result != null)
+                            _searchCache.Add(result);
+                    }
+
+                    DisplayNextSearchPage();
                 }
 
                 ResultsView.Visibility = Visibility.Visible;
                 BtnAddToQueue.Visibility = Visibility.Visible;
+
                 ListDownloads.Visibility = Visibility.Collapsed;
                 BtnViewToggle.Content = "Show Queue";
             }
             catch (Exception ex)
             {
                 TxtSearchStatus.Text = "Search failed.";
-                MessageBox.Show("Error: " + ex.Message);
+
+                MessageBox.Show(
+                    this,
+                    "Error: " + ex.Message,
+                    "Search Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
             finally
             {
@@ -159,98 +236,139 @@ namespace WindowsShuffle
             }
         }
 
-        private async void LoadMore_Click(object sender, RoutedEventArgs e)
+        private SearchResultItem ParseSearchResult(JToken entry)
         {
-            BtnLoadMore.IsEnabled = false;
-            try
+            if (entry == null)
+                return null;
+
+            string id = (string)entry["id"];
+
+            if (string.IsNullOrWhiteSpace(id))
+                return null;
+
+            string title = (string)entry["title"] ?? "Unknown Title";
+
+            string author =
+                (string)entry["uploader"] ??
+                (string)entry["channel"] ??
+                (string)entry["uploader_id"] ??
+                "Unknown Artist";
+
+            string thumbnail = (string)entry["thumbnail"];
+
+            if (string.IsNullOrWhiteSpace(thumbnail))
             {
-                await FetchNextBatch();
+                JArray thumbnails = entry["thumbnails"] as JArray;
+
+                if (thumbnails != null && thumbnails.Count > 0)
+                    thumbnail = (string)thumbnails.Last()["url"];
             }
-            catch (Exception ex)
+
+            string duration = "--:--";
+
+            double seconds;
+
+            if (double.TryParse(
+                (string)entry["duration"],
+                NumberStyles.Any,
+                CultureInfo.InvariantCulture,
+                out seconds))
             {
-                TxtSearchStatus.Text = "Could not load more results.";
-                System.Diagnostics.Debug.WriteLine($"Load more failed: {ex.Message}");
+                duration = TimeSpan.FromSeconds(seconds).ToString(
+                    seconds >= 3600 ? @"h\:mm\:ss" : @"mm\:ss");
             }
-            finally
+
+            return new SearchResultItem
             {
-                BtnLoadMore.IsEnabled = true;
-            }
+                VideoId = id,
+                Title = title,
+                Author = author,
+                ThumbnailUrl = thumbnail,
+                Duration = duration
+            };
         }
 
-        private async Task FetchNextBatch()
+        private void DisplayNextSearchPage()
         {
-            if (_searchEnumerator == null) return;
+            int end = Math.Min(
+                _searchOffset + SearchPageSize,
+                _searchCache.Count);
 
-            int count = 0;
-            bool hasMore = false;
+            for (int i = _searchOffset; i < end; i++)
+                SearchResults.Add(_searchCache[i]);
 
-            while (count < 20) // Load 20 results per "page"
-            {
-                if (await _searchEnumerator.MoveNextAsync())
-                {
-                    var video = _searchEnumerator.Current;
-                    SearchResults.Add(new SearchResultItem
-                    {
-                        VideoId = video.Id,
-                        Title = video.Title,
-                        Author = video.Author.ChannelTitle,
-                        ThumbnailUrl = video.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault()?.Url,
-                        Duration = video.Duration?.ToString(@"mm\:ss") ?? "--:--"
-                    });
-                    count++;
-                    hasMore = true;
-                }
-                else
-                {
-                    hasMore = false;
-                    break;
-                }
-            }
+            _searchOffset = end;
 
-            BtnLoadMore.Visibility = hasMore ? Visibility.Visible : Visibility.Collapsed;
-            TxtSearchStatus.Text = $"Displaying {SearchResults.Count} results found.";
+            BtnLoadMore.Visibility =
+                _searchOffset < _searchCache.Count
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
+            TxtSearchStatus.Text =
+                "Displaying " + SearchResults.Count +
+                " results found.";
         }
+
+        private void LoadMore_Click(object sender, RoutedEventArgs e)
+        {
+            DisplayNextSearchPage();
+        }
+
+        // ---------------------------------------------------------
+        // QUEUE
+        // ---------------------------------------------------------
 
         private void AddToQueue_Click(object sender, RoutedEventArgs e)
         {
             if (RadPlaylist.IsChecked == true)
             {
-                if (SearchResults.Count == 0) return;
+                if (SearchResults.Count == 0)
+                    return;
 
                 var playlistItem = new DownloadItem
                 {
                     IsPlaylist = true,
+                    PlaylistUrl = SearchInput.Text.Trim(),
                     Title = TxtSearchStatus.Tag?.ToString() ?? "Untitled Playlist",
                     Author = "YouTube Playlist",
                     ThumbnailUrl = SearchResults.FirstOrDefault()?.ThumbnailUrl,
                     PlaylistItems = SearchResults.ToList(),
-                    ShowDownloadButton = false // Start immediately
+                    ShowDownloadButton = false
                 };
 
                 Downloads.Add(playlistItem);
+
                 _ = ProcessDownload(playlistItem);
             }
             else
             {
-                var selected = ListResults.SelectedItems.Cast<SearchResultItem>().ToList();
-                if (selected.Count == 0) return;
+                var selected = ListResults.SelectedItems
+                    .Cast<SearchResultItem>()
+                    .ToList();
 
-                foreach (var res in selected)
+                if (selected.Count == 0)
+                    return;
+
+                foreach (var result in selected)
                 {
-                    if (Downloads.Any(d => d.VideoId == res.VideoId)) continue;
+                    if (Downloads.Any(d => d.VideoId == result.VideoId))
+                        continue;
+
                     Downloads.Add(new DownloadItem
                     {
-                        VideoId = res.VideoId,
-                        Title = res.Title,
-                        Author = res.Author,
-                        ThumbnailUrl = res.ThumbnailUrl
+                        VideoId = result.VideoId,
+                        Title = result.Title,
+                        Author = result.Author,
+                        ThumbnailUrl = result.ThumbnailUrl
                     });
                 }
             }
 
             ListResults.UnselectAll();
+
             ResultsView.Visibility = Visibility.Collapsed;
             ListDownloads.Visibility = Visibility.Visible;
+
             BtnViewToggle.Content = "Show Results";
         }
 
@@ -270,163 +388,191 @@ namespace WindowsShuffle
             }
         }
 
-        //private async Task ProcessDownload(DownloadItem item)
-        //{
-        //    item.IsDownloading = true;
-        //    try { await _semaphore.WaitAsync(item.Cts.Token); }
-        //    catch (OperationCanceledException) { item.StatusText = "Canceled"; item.IsDownloading = false; return; }
-
-        //    try
-        //    {
-        //        string baseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "Podmix Downloads");
-
-        //        // Ensure the main downloads folder exists
-        //        if (!Directory.Exists(baseFolder)) Directory.CreateDirectory(baseFolder);
-
-        //        if (item.IsPlaylist)
-        //        {
-        //            // Sanitize playlist name for folder creation
-        //            string sanitizedPlaylistName = string.Join("_", item.Title.Split(Path.GetInvalidFileNameChars()));
-        //            string playlistFolder = Path.Combine(baseFolder, sanitizedPlaylistName);
-
-        //            // Create the playlist subfolder before starting downloads
-        //            if (!Directory.Exists(playlistFolder)) Directory.CreateDirectory(playlistFolder);
-
-        //            item.CompletedTracks = 0;
-        //            foreach (var video in item.PlaylistItems)
-        //            {
-        //                if (item.Cts.Token.IsCancellationRequested) break;
-
-        //                var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(video.VideoId);
-        //                var streamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-        //                if (streamInfo == null) continue;
-
-        //                string fileName = string.Join("_", video.Title.Split(Path.GetInvalidFileNameChars())) + ".m4a";
-        //                string fullPath = Path.Combine(playlistFolder, fileName);
-
-        //                // Progress handler that includes both the track count and current track percentage
-        //                var progress = new Progress<double>(p =>
-        //                {
-        //                    item.StatusText = $"Downloading {item.CompletedTracks + 1}/{item.TotalTracks} ({(p * 100):F0}%)...";
-        //                });
-
-        //                await _youtube.Videos.Streams.DownloadAsync(streamInfo, fullPath, progress, item.Cts.Token);
-
-        //                item.CompletedTracks++;
-        //            }
-        //            item.StatusText = item.Cts.Token.IsCancellationRequested ? "Canceled" : "Completed";
-        //        }
-        //        else
-        //        {
-        //            // Single Song Logic
-        //            item.StatusText = "Connecting...";
-        //            var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(item.VideoId);
-        //            var streamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-        //            if (streamInfo == null) { item.StatusText = "Stream Error"; return; }
-
-        //            string fileName = string.Join("_", item.Title.Split(Path.GetInvalidFileNameChars())) + ".m4a";
-        //            var progress = new Progress<double>(p => item.StatusText = $"Downloading... {(p * 100):F0}%");
-        //            await _youtube.Videos.Streams.DownloadAsync(streamInfo, Path.Combine(baseFolder, fileName), progress, item.Cts.Token);
-        //            item.StatusText = "Completed";
-        //        }
-        //        item.IsCompleted = true;
-        //    }
-        //    catch (OperationCanceledException)
-        //    {
-        //        item.StatusText = "Canceled";
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        // This will show the actual error message in your UI
-        //        item.StatusText = "Failed to download. Make sure the content is Public or Unlisted.";
-        //        item.ShowDownloadButton = !item.IsPlaylist;
-
-        //        // Also logs the full technical details to your Visual Studio Output window
-        //        Clipboard.SetText($"Download Error for {item.Title}: {ex}");
-        //    }
-        //    finally { item.IsDownloading = false; _semaphore.Release(); }
-        //}
+        // ---------------------------------------------------------
+        // DOWNLOADS
+        // ---------------------------------------------------------
 
         private async Task ProcessDownload(DownloadItem item)
         {
+            bool semaphoreAcquired = false;
+
             item.IsDownloading = true;
-            try { await _semaphore.WaitAsync(item.Cts.Token); }
-            catch (OperationCanceledException) { item.StatusText = "Canceled"; item.IsDownloading = false; return; }
 
             try
             {
-                string baseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "Podmix Downloads");
-                if (!Directory.Exists(baseFolder)) Directory.CreateDirectory(baseFolder);
+                await _semaphore.WaitAsync(item.Cts.Token);
+                semaphoreAcquired = true;
+
+                if (!File.Exists(_ytDlpPath))
+                    throw new FileNotFoundException(
+                        "yt-dlp.exe was not found beside Podmix.exe.");
+
+                string baseFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+                    "Podmix Downloads");
+
+                Directory.CreateDirectory(baseFolder);
 
                 if (!FfmpegBootstrapper.IsAvailable())
                 {
                     item.StatusText = "Preparing converter...";
+
                     await FfmpegBootstrapper.EnsureAvailableAsync();
+
+                    if (!FfmpegBootstrapper.IsAvailable())
+                        throw new Exception("FFmpeg could not be installed.");
                 }
 
-                string ffmpegPath = FfmpegBootstrapper.FfmpegPath;
+                string arguments;
 
                 if (item.IsPlaylist)
                 {
-                    string sanitizedPlaylistName = string.Join("_", item.Title.Split(Path.GetInvalidFileNameChars()));
-                    string playlistFolder = Path.Combine(baseFolder, sanitizedPlaylistName);
-                    if (!Directory.Exists(playlistFolder)) Directory.CreateDirectory(playlistFolder);
+                    if (string.IsNullOrWhiteSpace(item.PlaylistUrl))
+                        throw new Exception("The playlist URL is missing.");
+
+                    string sanitizedName = SanitizeFileName(item.Title);
+
+                    string playlistFolder = Path.Combine(
+                        baseFolder,
+                        sanitizedName);
+
+                    Directory.CreateDirectory(playlistFolder);
 
                     item.CompletedTracks = 0;
-                    foreach (var video in item.PlaylistItems)
-                    {
-                        if (item.Cts.Token.IsCancellationRequested) break;
 
-                        var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(video.VideoId);
-                        var streamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-                        if (streamInfo == null) continue;
+                    string outputTemplate = Path.Combine(
+                        playlistFolder,
+                        "%(playlist_index)02d - %(title)s.%(ext)s");
 
-                        string sanitizedTitle = string.Join("_", video.Title.Split(Path.GetInvalidFileNameChars()));
-                        string m4aPath = Path.Combine(playlistFolder, sanitizedTitle + ".m4a");
-                        string mp3Path = Path.Combine(playlistFolder, sanitizedTitle + ".mp3");
-
-                        var progress = new Progress<double>(p =>
-                        {
-                            item.StatusText = $"Downloading... {item.CompletedTracks + 1}/{item.TotalTracks} ({(p * 100):F0}%)...";
-                        });
-
-                        await _youtube.Videos.Streams.DownloadAsync(streamInfo, m4aPath, progress, item.Cts.Token);
-
-                        // Convert to MP3
-                        if (File.Exists(ffmpegPath))
-                        {
-                            item.StatusText = $"Converting... {item.CompletedTracks + 1}/{item.TotalTracks}...";
-                            await ConvertToMp3(ffmpegPath, m4aPath, mp3Path);
-                        }
-
-                        item.CompletedTracks++;
-                    }
-                    item.StatusText = item.Cts.Token.IsCancellationRequested ? "Canceled" : "Completed";
+                    arguments =
+                        "-x " +
+                        "--audio-format mp3 " +
+                        "--audio-quality 320K " +
+                        "--add-metadata " +
+                        "--embed-thumbnail " +
+                        "--newline " +
+                        "--yes-playlist " +
+                        "--ignore-errors " +
+                        "--ffmpeg-location " + QuoteArgument(
+                            Path.GetDirectoryName(FfmpegBootstrapper.FfmpegPath)) + " " +
+                        "-o " + QuoteArgument(outputTemplate) + " " +
+                        "--print " + QuoteArgument("after_move:__PODMIX_DONE__") + " " +
+                        QuoteArgument(item.PlaylistUrl);
                 }
                 else
                 {
-                    item.StatusText = "Connecting...";
-                    var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(item.VideoId);
-                    var streamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-                    if (streamInfo == null) { item.StatusText = "Stream Error"; return; }
+                    string videoUrl =
+                        "https://www.youtube.com/watch?v=" +
+                        Uri.EscapeDataString(item.VideoId);
 
-                    string sanitizedTitle = string.Join("_", item.Title.Split(Path.GetInvalidFileNameChars()));
-                    string m4aPath = Path.Combine(baseFolder, sanitizedTitle + ".m4a");
-                    string mp3Path = Path.Combine(baseFolder, sanitizedTitle + ".mp3");
+                    string outputTemplate = Path.Combine(
+                        baseFolder,
+                        "%(title)s.%(ext)s");
 
-                    var progress = new Progress<double>(p => item.StatusText = $"Downloading... {(p * 100):F0}%");
-                    await _youtube.Videos.Streams.DownloadAsync(streamInfo, m4aPath, progress, item.Cts.Token);
-
-                    // Convert to MP3
-                    if (File.Exists(ffmpegPath))
-                    {
-                        item.StatusText = "Converting to MP3...";
-                        await ConvertToMp3(ffmpegPath, m4aPath, mp3Path);
-                    }
-
-                    item.StatusText = "Completed";
+                    arguments =
+                        "-x " +
+                        "--audio-format mp3 " +
+                        "--audio-quality 320K " +
+                        "--add-metadata " +
+                        "--embed-thumbnail " +
+                        "--newline " +
+                        "--no-playlist " +
+                        "--ffmpeg-location " + QuoteArgument(
+                            Path.GetDirectoryName(FfmpegBootstrapper.FfmpegPath)) + " " +
+                        "-o " + QuoteArgument(outputTemplate) + " " +
+                        "--print " + QuoteArgument("after_move:__PODMIX_DONE__") + " " +
+                        QuoteArgument(videoUrl);
                 }
+
+                item.StatusText = "Connecting...";
+
+                StringBuilder errorOutput = new StringBuilder();
+
+                string exitCode = await RunYtDlpAsync(
+                    arguments,
+                    item.Cts.Token,
+                    line =>
+                    {
+                        if (line.Contains("__PODMIX_DONE__"))
+                        {
+                            item.CompletedTracks++;
+                            return;
+                        }
+
+                        Match match = Regex.Match(
+                            line,
+                            @"\[download\]\s+(\d+(?:\.\d+)?)%");
+
+                        if (match.Success)
+                        {
+                            string percentage = match.Groups[1].Value;
+
+                            if (item.IsPlaylist)
+                            {
+                                item.StatusText =
+                                    "Downloading " +
+                                    Math.Min(item.CompletedTracks + 1, item.TotalTracks) +
+                                    "/" + item.TotalTracks +
+                                    " (" + percentage + "%)...";
+                            }
+                            else
+                            {
+                                item.StatusText =
+                                    "Downloading... " + percentage + "%";
+                            }
+                        }
+                        else if (line.Contains("[ExtractAudio]") ||
+                                 line.Contains("[EmbedThumbnail]") ||
+                                 line.Contains("[Metadata]"))
+                        {
+                            item.StatusText = "Processing audio...";
+                        }
+                    },
+                    line =>
+                    {
+                        errorOutput.AppendLine(line);
+
+                        Match match = Regex.Match(
+                            line,
+                            @"\[download\]\s+(\d+(?:\.\d+)?)%");
+
+                        if (match.Success)
+                        {
+                            string percentage = match.Groups[1].Value;
+
+                            if (item.IsPlaylist)
+                            {
+                                item.StatusText =
+                                    "Downloading " +
+                                    Math.Min(item.CompletedTracks + 1, item.TotalTracks) +
+                                    "/" + item.TotalTracks +
+                                    " (" + percentage + "%)...";
+                            }
+                            else
+                            {
+                                item.StatusText =
+                                    "Downloading... " + percentage + "%";
+                            }
+                        }
+                    });
+
+                if (item.Cts.Token.IsCancellationRequested)
+                {
+                    item.StatusText = "Canceled";
+                    return;
+                }
+
+                if (exitCode != 0)
+                {
+                    throw new Exception(
+                        string.IsNullOrWhiteSpace(errorOutput.ToString())
+                            ? "yt-dlp exited with code " + exitCode
+                            : errorOutput.ToString());
+                }
+
                 item.IsCompleted = true;
+                item.CompletedTracks = item.TotalTracks;
+                item.StatusText = "Completed";
             }
             catch (OperationCanceledException)
             {
@@ -436,47 +582,133 @@ namespace WindowsShuffle
             {
                 item.StatusText = "Failed to download.";
                 item.ShowDownloadButton = !item.IsPlaylist;
-                try { Clipboard.SetText($"Download Error for {item.Title}: {ex}"); } catch { }
+
+                try
+                {
+                    Clipboard.SetText(
+                        "Download Error for " + item.Title + ":\n" + ex);
+                }
+                catch { }
             }
-            finally { item.IsDownloading = false; _semaphore.Release(); }
+            finally
+            {
+                item.IsDownloading = false;
+
+                if (semaphoreAcquired)
+                    _semaphore.Release();
+            }
         }
 
-        private async Task ConvertToMp3(string ffmpegPath, string inputPath, string outputPath)
-        {
-            // -i: input file
-            // -codec:a libmp3lame: use the MP3 encoder
-            // -qscale:a 2: high quality VBR (approx 190-250 kbps)
-            // -y: overwrite output if exists
-            string args = $"-i \"{inputPath}\" -codec:a libmp3lame -qscale:a 2 \"{outputPath}\" -y";
+        // ---------------------------------------------------------
+        // YT-DLP PROCESS
+        // ---------------------------------------------------------
 
+
+        private async Task<string> RunYtDlpAsync(
+            string arguments,
+            CancellationToken cancellationToken,
+            Action<string> outputHandler,
+            Action<string> errorHandler = null)
+        {
             ProcessStartInfo psi = new ProcessStartInfo
             {
-                FileName = ffmpegPath,
-                Arguments = args,
+                FileName = _ytDlpPath,
+                Arguments = arguments,
+                WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                RedirectStandardError = true // FFmpeg outputs logs to error stream
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             };
 
-            using (Process process = new Process { StartInfo = psi })
-            {
-                process.Start();
-                await Task.Run(() => process.WaitForExit());
+            StringBuilder standardOutput = new StringBuilder();
 
-                // Delete the original m4a file if conversion was successful
-                if (process.ExitCode == 0 && File.Exists(outputPath))
+            using (Process process = new Process())
+            {
+                process.StartInfo = psi;
+
+                process.OutputDataReceived += (sender, e) =>
                 {
-                    try { File.Delete(inputPath); } catch { }
+                    if (e.Data == null) return;
+
+                    standardOutput.AppendLine(e.Data);
+
+                    if (outputHandler != null)
+                        outputHandler(e.Data);
+                };
+
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (e.Data != null && errorHandler != null)
+                        errorHandler(e.Data);
+                };
+
+                process.Start();
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                using (CancellationTokenRegistration registration =
+                    cancellationToken.Register(() =>
+                    {
+                        try
+                        {
+                            if (!process.HasExited)
+                                process.Kill();
+                        }
+                        catch { }
+                    }))
+                {
+                    await Task.Run(() =>
+                    {
+                        process.WaitForExit();
+                        process.WaitForExit();
+                    });
                 }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (process.ExitCode != 0)
+                    throw new Exception("yt-dlp exited with code " + process.ExitCode);
+
+                return standardOutput.ToString();
             }
         }
+
+
+        private string QuoteArgument(string argument)
+        {
+            if (argument == null)
+                return "\"\"";
+
+            return "\"" + argument.Replace("\\", "\\\\")
+                                  .Replace("\"", "\\\"") + "\"";
+        }
+
+        private string SanitizeFileName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return "YouTube Playlist";
+
+            foreach (char c in Path.GetInvalidFileNameChars())
+                name = name.Replace(c, '_');
+
+            return name.Trim();
+        }
+
+        // ---------------------------------------------------------
+        // QUEUE BUTTONS
+        // ---------------------------------------------------------
 
         private async void StartDownload_Click(object sender, RoutedEventArgs e)
         {
             if (((FrameworkElement)sender).DataContext is DownloadItem item)
             {
-                if (item.IsDownloading || item.IsCompleted) return;
+                if (item.IsDownloading || item.IsCompleted)
+                    return;
+
                 item.ShowDownloadButton = false;
+
                 await ProcessDownload(item);
             }
         }
@@ -486,8 +718,10 @@ namespace WindowsShuffle
             if (((FrameworkElement)sender).DataContext is DownloadItem item)
             {
                 item.Cts.Cancel();
-                // If not actively downloading or already finished/canceled, remove from list
-                if (!item.IsDownloading || item.IsCompleted || item.StatusText == "Canceled")
+
+                if (!item.IsDownloading ||
+                    item.IsCompleted ||
+                    item.StatusText == "Canceled")
                 {
                     Downloads.Remove(item);
                 }
@@ -496,14 +730,23 @@ namespace WindowsShuffle
 
         private void ClearCompleted_Click(object sender, RoutedEventArgs e)
         {
-            var toRemove = Downloads.Where(d => d.IsCompleted || d.StatusText == "Canceled" || d.StatusText == "Error").ToList();
-            foreach (var item in toRemove) Downloads.Remove(item);
+            var toRemove = Downloads.Where(d =>
+                d.IsCompleted ||
+                d.StatusText == "Canceled" ||
+                d.StatusText == "Error").ToList();
+
+            foreach (var item in toRemove)
+                Downloads.Remove(item);
         }
 
         private void OpenFolder_Click(object sender, RoutedEventArgs e)
         {
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "Podmix Downloads");
-            if (Directory.Exists(path)) Process.Start("explorer.exe", path);
+            string path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+                "Podmix Downloads");
+
+            if (Directory.Exists(path))
+                Process.Start("explorer.exe", path);
         }
     }
 
