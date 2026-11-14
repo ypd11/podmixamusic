@@ -450,6 +450,7 @@ namespace WindowsShuffle
                         "--audio-quality 320K " +
                         "--add-metadata " +
                         "--embed-thumbnail " +
+                        "--progress " +
                         "--newline " +
                         "--yes-playlist " +
                         "--ignore-errors " +
@@ -488,7 +489,7 @@ namespace WindowsShuffle
 
                 StringBuilder errorOutput = new StringBuilder();
 
-                string exitCode = await RunYtDlpAsync(
+                await RunYtDlpAsync(
                     arguments,
                     item.Cts.Token,
                     line =>
@@ -560,14 +561,6 @@ namespace WindowsShuffle
                 {
                     item.StatusText = "Canceled";
                     return;
-                }
-
-                if (exitCode != 0)
-                {
-                    throw new Exception(
-                        string.IsNullOrWhiteSpace(errorOutput.ToString())
-                            ? "yt-dlp exited with code " + exitCode
-                            : errorOutput.ToString());
                 }
 
                 item.IsCompleted = true;
