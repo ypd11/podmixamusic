@@ -310,6 +310,8 @@ namespace WindowsShuffle
             RegisterBassNet();
             InitializeComponent();
 
+            NotesAppView.BackRequested += NotesAppView_BackRequested;
+
             // Make sure the actual player remains the application's main window.
             Application.Current.MainWindow = this;
 
@@ -6196,7 +6198,9 @@ namespace WindowsShuffle
                 AnimateViewOutAsync(PlaylistsView),
                 AnimateViewOutAsync(LyricsView),
                 AnimateViewOutAsync(CoverFlowView),
-                AnimateViewOutAsync(AppsView)
+                AnimateViewOutAsync(AppsView),
+                AnimateViewOutAsync(AppsView),
+                AnimateViewOutAsync(NotesAppView)
             );
         }
 
@@ -8989,6 +8993,23 @@ namespace WindowsShuffle
                     e.Handled = true;
                     break;
             }
+        }
+
+
+        private async void OpenNotes_Click(object sender, RoutedEventArgs e)
+        {
+            await AnimateViewOutAsync(AppsView);
+
+            NotesAppView.Visibility = Visibility.Visible;
+            AnimateViewIn(NotesAppView);
+        }
+
+        private async void NotesAppView_BackRequested(object sender, EventArgs e)
+        {
+            await AnimateViewOutAsync(NotesAppView);
+
+            AppsView.Visibility = Visibility.Visible;
+            AnimateViewIn(AppsView);
         }
 
 
