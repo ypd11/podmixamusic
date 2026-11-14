@@ -8655,7 +8655,7 @@ namespace WindowsShuffle
                         if (ReferenceEquals(_activeNotificationWindow, s))
                         {
                             _activeNotificationWindow = null;
-                            RestoreMainWindow();
+                            //RestoreMainWindow();
                         }
                     };
                     _activeNotificationWindow.Show();
