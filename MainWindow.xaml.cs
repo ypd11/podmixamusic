@@ -8763,6 +8763,14 @@ namespace WindowsShuffle
             if (!_isDevicePoweredOff)
                 ResetScreenSleepTimer();
 
+            // Let the Notes editor receive keyboard input.
+            // Do not execute any player shortcuts while editing.
+            if (NotesAppView.Visibility == Visibility.Visible &&
+                NotesAppView.IsEditorOpen)
+            {
+                return;
+            }
+
             // Allow Toggle View in every device state.
             if (e.Key == Key.T)
             {
@@ -9029,6 +9037,12 @@ namespace WindowsShuffle
 
         private void Window_PreviewKeyUp(object sender, KeyEventArgs e)
         {
+            if (NotesAppView.Visibility == Visibility.Visible &&
+                NotesAppView.IsEditorOpen)
+            {
+                return;
+            }
+
             if (e.Key == Key.Space)
                 CenterPlayBtn.Tag = null;
         }
