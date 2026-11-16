@@ -51,11 +51,16 @@ namespace WindowsShuffle
             {
                 var files = await main.GetLibraryAudioFilesAsync();
 
-                _libraryCache = files
-                    .Where(File.Exists)
-                    .Select((file, index) => CreatePathOnlyResult(file, index + 1))
-                    .OrderBy(s => s.Title)
-                    .ToList();
+                _libraryCache = await Task.Run(() =>
+                {
+                    return files
+                        .Where(File.Exists)
+                        .Select((file, index) =>
+                            LoadSongMetadataForIndex(
+                                CreatePathOnlyResult(file, index + 1)))
+                        .OrderBy(s => s.Title)
+                        .ToList();
+                });
 
                 TxtNoResults.Text = _libraryCache.Count > 0
                     ? "Search songs, albums or artists"
@@ -87,6 +92,49 @@ namespace WindowsShuffle
                 AlbumArt = null,
                 IsMetadataLoaded = false
             };
+        }
+
+        private SongResult LoadSongMetadataForIndex(SongResult fallback)
+        {
+            try
+            {
+                using (var tfile = TagLib.File.Create(fallback.FullPath))
+                {
+                    string artist =
+                        tfile.Tag.FirstAlbumArtist ??
+                        tfile.Tag.FirstPerformer ??
+                        "Unknown Artist";
+
+                    if (string.IsNullOrWhiteSpace(artist))
+                        artist = "Unknown Artist";
+
+                    string album = tfile.Tag.Album;
+
+                    if (string.IsNullOrWhiteSpace(album))
+                        album = "Unknown Album";
+
+                    return new SongResult
+                    {
+                        Index = fallback.Index,
+                        Title = !string.IsNullOrWhiteSpace(tfile.Tag.Title)
+                            ? tfile.Tag.Title
+                            : fallback.Title,
+                        Artist = artist,
+                        Album = album,
+                        Duration = tfile.Properties.Duration.ToString(@"mm\:ss"),
+                        FileName = fallback.FileName,
+                        FullPath = fallback.FullPath,
+                        FolderPath = fallback.FolderPath,
+                        AlbumArt = null,
+                        IsMetadataLoaded = true
+                    };
+                }
+            }
+            catch
+            {
+                fallback.IsMetadataLoaded = true;
+                return fallback;
+            }
         }
 
         private async Task PerformSearch()
@@ -123,25 +171,61 @@ namespace WindowsShuffle
             }
         }
 
+        //private async Task EnrichVisibleResultsAsync(List<SongResult> results, int searchVersion)
+        //{
+        //    foreach (var result in results.Where(r => !r.IsMetadataLoaded).ToList())
+        //    {
+        //        if (searchVersion != _searchVersion || !IsVisible)
+        //            return;
+
+        //        SongResult enriched = await Task.Run(() => LoadSongMetadata(result));
+
+        //        if (searchVersion != _searchVersion || !IsVisible)
+        //            return;
+
+        //        result.Title = enriched.Title;
+        //        result.Artist = enriched.Artist;
+        //        result.Album = enriched.Album;
+        //        result.Duration = enriched.Duration;
+        //        result.AlbumArt = enriched.AlbumArt;
+        //        result.IsMetadataLoaded = true;
+        //    }
+        //}
+
         private async Task EnrichVisibleResultsAsync(List<SongResult> results, int searchVersion)
         {
-            foreach (var result in results.Where(r => !r.IsMetadataLoaded).ToList())
+            foreach (var result in results.Where(r => !r.IsArtworkLoaded).ToList())
             {
                 if (searchVersion != _searchVersion || !IsVisible)
                     return;
 
-                SongResult enriched = await Task.Run(() => LoadSongMetadata(result));
+                ImageSource artwork = await Task.Run(() =>
+                    LoadSongArtwork(result.FullPath));
 
                 if (searchVersion != _searchVersion || !IsVisible)
                     return;
 
-                result.Title = enriched.Title;
-                result.Artist = enriched.Artist;
-                result.Album = enriched.Album;
-                result.Duration = enriched.Duration;
-                result.AlbumArt = enriched.AlbumArt;
-                result.IsMetadataLoaded = true;
+                result.AlbumArt = artwork;
+                result.IsArtworkLoaded = true;
             }
+        }
+
+        private ImageSource LoadSongArtwork(string filePath)
+        {
+            try
+            {
+                using (var tfile = TagLib.File.Create(filePath))
+                {
+                    if (tfile.Tag.Pictures != null &&
+                        tfile.Tag.Pictures.Length > 0)
+                    {
+                        return LoadImage(tfile.Tag.Pictures[0].Data.Data);
+                    }
+                }
+            }
+            catch { }
+
+            return null;
         }
 
         private SongResult LoadSongMetadata(SongResult fallback)
@@ -230,6 +314,7 @@ namespace WindowsShuffle
         private string _album;
         private string _duration;
         private ImageSource _albumArt;
+        public bool IsArtworkLoaded { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
