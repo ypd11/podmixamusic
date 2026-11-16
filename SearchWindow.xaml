@@ -1,0 +1,203 @@
+﻿<Window x:Class="WindowsShuffle.SearchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Search Playlist" Height="480" Width="300" 
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="False"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+        <!-- Modern Search Box Template -->
+        <ControlTemplate x:Key="IosSearchBox" TargetType="{x:Type TextBox}">
+            <Border x:Name="border" Background="#2C2C2E" CornerRadius="10" BorderThickness="1" BorderBrush="#3A3A3C">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="35"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🔍" Foreground="#8E8E93" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="14"/>
+                    <ScrollViewer x:Name="PART_ContentHost" Grid.Column="1" VerticalAlignment="Center" Margin="2,0,10,0"/>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter TargetName="border" Property="Background" Value="#3A3A3C"/>
+                    <Setter TargetName="border" Property="BorderBrush" Value="#0A84FF"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Custom ScrollBar Style -->
+        <Style TargetType="{x:Type ScrollBar}">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid x:Name="Bg" Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="true">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Border Background="#44FFFFFF" CornerRadius="3" Margin="1,0"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ListBoxItem Styling -->
+        <Style TargetType="{x:Type ListBoxItem}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" CornerRadius="6" Margin="2,1">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#2C2C2E"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#3A3A3C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="#1C1C1E" CornerRadius="20" BorderBrush="#38383A" BorderThickness="1.2">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- Header -->
+                <RowDefinition Height="Auto"/>
+                <!-- Search Bar -->
+                <RowDefinition Height="*"/>
+                <!-- Results -->
+            </Grid.RowDefinitions>
+
+            <!-- Header Section -->
+            <Grid Grid.Row="0" Margin="0,0,0,15">
+                <Button Click="Exit_Click" Width="12" Height="12" HorizontalAlignment="Left" VerticalAlignment="Center" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate>
+                            <Ellipse Fill="#FF5F57"/>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <TextBlock Text="Search Playlist" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+            </Grid>
+
+            <!-- Search Input Area -->
+            <Grid Grid.Row="1" Margin="0,0,0,15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="SearchInput" 
+                         Height="36" 
+                         Foreground="White" 
+                         FontSize="14"
+                         Template="{StaticResource IosSearchBox}"
+                         VerticalContentAlignment="Center"
+                         KeyDown="SearchInput_KeyDown"/>
+
+                <Button Grid.Column="1" Click="DoSearch_Click" Margin="10,0,0,0" 
+                        Content="Search" Foreground="#0A84FF" FontWeight="SemiBold" FontSize="14" Background="Transparent" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <!-- Results Section -->
+            <Grid Grid.Row="2">
+                <TextBlock x:Name="TxtNoResults" Text="Search songs in current playlist" Foreground="#8E8E93" 
+                           HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,0" FontSize="13" Visibility="Visible"/>
+
+                <ListBox x:Name="ListResults" Background="Transparent" BorderThickness="0" 
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         MouseDoubleClick="ListResults_MouseDoubleClick"
+                         Padding="0,0,5,0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid x:Name="ItemContentGrid" Margin="8,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <!-- Column for Image -->
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Album Art Thumbnail as a Circle -->
+                                <Grid Grid.Column="0" Width="36" Height="36" Margin="0,0,12,0">
+                                    <!-- Background Circle with Fallback Icon -->
+                                    <Ellipse Fill="#2C2C2E"/>
+                                    <TextBlock Text="♪" Foreground="#444" VerticalAlignment="Center" 
+                                        HorizontalAlignment="Center" FontSize="18"/>
+
+                                    <!-- Image Circle -->
+                                    <Ellipse>
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{Binding AlbumArt}" Stretch="UniformToFill"/>
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtTitle" 
+                           Text="{Binding Title}" 
+                           Foreground="White" 
+                           FontSize="13" 
+                           FontWeight="SemiBold" 
+                           TextTrimming="CharacterEllipsis"/>
+
+                                    <TextBlock FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
+                    <Run x:Name="RunArtist" Text="{Binding Artist, Mode=OneWay}" Foreground="#8E8E93"/>
+                    <Run Text=" • " Foreground="#444444"/>
+                    <Run x:Name="RunAlbum" Text="{Binding Album, Mode=OneWay}" Foreground="#8E8E93"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="2" x:Name="TxtDuration" 
+                       Text="{Binding Duration}" 
+                       Foreground="#666666" 
+                       FontSize="11" 
+                       VerticalAlignment="Center" 
+                       Margin="10,0,0,0"/>
+                            </Grid>
+
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                    <Setter TargetName="TxtTitle" Property="Foreground" Value="White"/>
+                                    <Setter TargetName="RunArtist" Property="Foreground" Value="#E0E0E0"/>
+                                    <Setter TargetName="RunAlbum" Property="Foreground" Value="#E0E0E0"/>
+                                    <Setter TargetName="TxtDuration" Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
