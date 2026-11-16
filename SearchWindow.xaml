@@ -130,74 +130,255 @@
 
             <!-- Results Section -->
             <Grid Grid.Row="2">
-                <TextBlock x:Name="TxtNoResults" Text="Search songs in current playlist" Foreground="#8E8E93" 
-                           HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,0" FontSize="13" Visibility="Visible"/>
+                <TextBlock x:Name="TxtNoResults"
+               Text="Search songs, albums or artists"
+               Foreground="#8E8E93"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Top"
+               Margin="0,40,0,0"
+               FontSize="13"
+               Visibility="Visible"/>
 
-                <ListBox x:Name="ListResults" Background="Transparent" BorderThickness="0" 
-                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+
+                    <StackPanel x:Name="ResultsPanel">
+
+                        <!-- Artists -->
+                        <StackPanel x:Name="ArtistsSection"
+                        Visibility="Collapsed"
+                        Margin="0,0,0,12">
+
+                            <TextBlock Text="ARTISTS"
+                           Foreground="#8E8E93"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Margin="8,8,0,5"/>
+
+                            <ListBox x:Name="ArtistResults"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="8,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="42"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Grid Width="36" Height="36">
+                                                <Ellipse Fill="#2C2C2E"/>
+                                                <TextBlock Text="♪"
+                                               Foreground="#777777"
+                                               FontSize="18"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                            </Grid>
+
+                                            <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Margin="10,0,0,0">
+                                                <TextBlock Text="{Binding Name}"
+                                               Foreground="White"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                                <TextBlock Text="{Binding Subtitle}"
+                                               Foreground="#8E8E93"
+                                               FontSize="11"/>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="2"
+                                           Text="›"
+                                           Foreground="#666666"
+                                           FontSize="22"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,4,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+
+                        <!-- Albums -->
+                        <StackPanel x:Name="AlbumsSection"
+                        Visibility="Collapsed"
+                        Margin="0,0,0,12">
+
+                            <TextBlock Text="ALBUMS"
+                           Foreground="#8E8E93"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Margin="8,8,0,5"/>
+
+                            <ListBox x:Name="AlbumResults"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="8,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="42"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Grid Width="36" Height="36">
+                                                <Border Background="#2C2C2E"
+                                            CornerRadius="5"/>
+                                                <TextBlock Text="♫"
+                                               Foreground="#777777"
+                                               FontSize="17"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                            </Grid>
+
+                                            <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Margin="10,0,0,0">
+                                                <TextBlock Text="{Binding Name}"
+                                               Foreground="White"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                                <TextBlock Text="{Binding Subtitle}"
+                                               Foreground="#8E8E93"
+                                               FontSize="11"/>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="2"
+                                           Text="›"
+                                           Foreground="#666666"
+                                           FontSize="22"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,4,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+
+                        <!-- Songs -->
+                        <StackPanel x:Name="SongsSection"
+                        Visibility="Collapsed">
+
+                            <TextBlock Text="SONGS"
+                           Foreground="#8E8E93"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Margin="8,8,0,5"/>
+
+                            <ListBox x:Name="ListResults"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          MouseDoubleClick="ListResults_MouseDoubleClick"
                          Padding="0,0,5,0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid x:Name="ItemContentGrid" Margin="8,6">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <!-- Column for Image -->
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
 
-                                <!-- Album Art Thumbnail as a Circle -->
-                                <Grid Grid.Column="0" Width="36" Height="36" Margin="0,0,12,0">
-                                    <!-- Background Circle with Fallback Icon -->
-                                    <Ellipse Fill="#2C2C2E"/>
-                                    <TextBlock Text="♪" Foreground="#444" VerticalAlignment="Center" 
-                                        HorizontalAlignment="Center" FontSize="18"/>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid x:Name="ItemContentGrid"
+                                  Margin="8,6">
 
-                                    <!-- Image Circle -->
-                                    <Ellipse>
-                                        <Ellipse.Fill>
-                                            <ImageBrush ImageSource="{Binding AlbumArt}" Stretch="UniformToFill"/>
-                                        </Ellipse.Fill>
-                                    </Ellipse>
-                                </Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock x:Name="TxtTitle" 
-                           Text="{Binding Title}" 
-                           Foreground="White" 
-                           FontSize="13" 
-                           FontWeight="SemiBold" 
-                           TextTrimming="CharacterEllipsis"/>
+                                            <Grid Grid.Column="0"
+                                      Width="36"
+                                      Height="36"
+                                      Margin="0,0,12,0">
 
-                                    <TextBlock FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
-                    <Run x:Name="RunArtist" Text="{Binding Artist, Mode=OneWay}" Foreground="#8E8E93"/>
-                    <Run Text=" • " Foreground="#444444"/>
-                    <Run x:Name="RunAlbum" Text="{Binding Album, Mode=OneWay}" Foreground="#8E8E93"/>
-                                    </TextBlock>
-                                </StackPanel>
+                                                <Ellipse Fill="#2C2C2E"/>
 
-                                <TextBlock Grid.Column="2" x:Name="TxtDuration" 
-                       Text="{Binding Duration}" 
-                       Foreground="#666666" 
-                       FontSize="11" 
-                       VerticalAlignment="Center" 
-                       Margin="10,0,0,0"/>
-                            </Grid>
+                                                <TextBlock Text="♪"
+                                               Foreground="#444444"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center"
+                                               FontSize="18"/>
 
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                    <Setter TargetName="TxtTitle" Property="Foreground" Value="White"/>
-                                    <Setter TargetName="RunArtist" Property="Foreground" Value="#E0E0E0"/>
-                                    <Setter TargetName="RunAlbum" Property="Foreground" Value="#E0E0E0"/>
-                                    <Setter TargetName="TxtDuration" Property="Foreground" Value="White"/>
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                                                <Ellipse>
+                                                    <Ellipse.Fill>
+                                                        <ImageBrush ImageSource="{Binding AlbumArt}"
+                                                        Stretch="UniformToFill"/>
+                                                    </Ellipse.Fill>
+                                                </Ellipse>
+                                            </Grid>
+
+                                            <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center">
+
+                                                <TextBlock x:Name="TxtTitle"
+                                               Text="{Binding Title}"
+                                               Foreground="White"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                                <TextBlock FontSize="11"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,1,0,0">
+
+                                        <Run x:Name="RunArtist"
+                                             Text="{Binding Artist, Mode=OneWay}"
+                                             Foreground="#8E8E93"/>
+
+                                        <Run Text=" • "
+                                             Foreground="#444444"/>
+
+                                        <Run x:Name="RunAlbum"
+                                             Text="{Binding Album, Mode=OneWay}"
+                                             Foreground="#8E8E93"/>
+                                                </TextBlock>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="2"
+                                           x:Name="TxtDuration"
+                                           Text="{Binding Duration}"
+                                           Foreground="#666666"
+                                           FontSize="11"
+                                           VerticalAlignment="Center"
+                                           Margin="10,0,0,0"/>
+                                        </Grid>
+
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                             Value="True">
+                                                <Setter TargetName="TxtTitle"
+                                            Property="Foreground"
+                                            Value="White"/>
+                                                <Setter TargetName="RunArtist"
+                                            Property="Foreground"
+                                            Value="#E0E0E0"/>
+                                                <Setter TargetName="RunAlbum"
+                                            Property="Foreground"
+                                            Value="#E0E0E0"/>
+                                                <Setter TargetName="TxtDuration"
+                                            Property="Foreground"
+                                            Value="White"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
+
         </Grid>
     </Border>
 </Window>
