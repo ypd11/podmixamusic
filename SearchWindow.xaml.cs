@@ -30,16 +30,45 @@ namespace WindowsShuffle
             LoadLibraryCache();
         }
 
-        private void LoadLibraryCache()
-        {
-            _libraryCache = main.playlist
-                .Where(File.Exists)
-                .Select((file, index) => CreatePathOnlyResult(file, index + 1))
-                .OrderBy(s => s.Title)
-                .ToList();
+        //private void LoadLibraryCache()
+        //{
+        //    _libraryCache = main.playlist
+        //        .Where(File.Exists)
+        //        .Select((file, index) => CreatePathOnlyResult(file, index + 1))
+        //        .OrderBy(s => s.Title)
+        //        .ToList();
 
-            TxtNoResults.Text = "Search songs in current playlist";
+        //    TxtNoResults.Text = "Search songs in current playlist";
+        //    TxtNoResults.Visibility = Visibility.Visible;
+        //}
+
+        private async void LoadLibraryCache()
+        {
+            TxtNoResults.Text = "Loading music collection...";
             TxtNoResults.Visibility = Visibility.Visible;
+
+            try
+            {
+                var files = await main.GetLibraryAudioFilesAsync();
+
+                _libraryCache = files
+                    .Where(File.Exists)
+                    .Select((file, index) => CreatePathOnlyResult(file, index + 1))
+                    .OrderBy(s => s.Title)
+                    .ToList();
+
+                TxtNoResults.Text = _libraryCache.Count > 0
+                    ? "Search songs, albums or artists"
+                    : "No music found in selected folder";
+
+                TxtNoResults.Visibility = Visibility.Visible;
+            }
+            catch (Exception ex)
+            {
+                TxtNoResults.Text = "Unable to load music collection";
+                TxtNoResults.Visibility = Visibility.Visible;
+                System.Diagnostics.Debug.WriteLine(ex.Message);
+            }
         }
 
         private SongResult CreatePathOnlyResult(string file, int index)
