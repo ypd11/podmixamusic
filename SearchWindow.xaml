@@ -144,7 +144,7 @@
         Content="Back"
         Click="BackToSearchResults_Click"
         Visibility="Collapsed"
-        HorizontalAlignment="Center"
+        HorizontalAlignment="Left"
         VerticalAlignment="Top"
         Background="Transparent"
         Foreground="White"
@@ -209,13 +209,25 @@
 
                                             <Grid Width="36" Height="36">
                                                 <Ellipse Fill="#2C2C2E"/>
-                                                <TextBlock Text="♪"
-                                               Foreground="#777777"
-                                               FontSize="18"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
-                                            </Grid>
 
+                                                <!-- Head -->
+                                                <Ellipse Width="9"
+             Height="9"
+             Stroke="#D1D5DB"
+             StrokeThickness="1.8"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Top"
+             Margin="0,6,0,0"/>
+
+                                                <!-- Shoulders -->
+                                                <Path Data="M5,29 C5,22 10,18 18,18 C26,18 31,22 31,29"
+          Stroke="#D1D5DB"
+          StrokeThickness="1.8"
+          StrokeStartLineCap="Round"
+          StrokeEndLineCap="Round"
+          Fill="Transparent"/>
+                                            </Grid>
+                                            
                                             <StackPanel Grid.Column="1"
                                             VerticalAlignment="Center"
                                             Margin="10,0,0,0">
@@ -271,12 +283,27 @@
 
                                             <Grid Width="36" Height="36">
                                                 <Border Background="#2C2C2E"
-                                            CornerRadius="5"/>
-                                                <TextBlock Text="♫"
-                                               Foreground="#777777"
-                                               FontSize="17"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
+            CornerRadius="5"/>
+
+                                                <Ellipse Width="26"
+             Height="26"
+             Stroke="#D1D5DB"
+             StrokeThickness="1.5"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center"/>
+
+                                                <Ellipse Width="13"
+             Height="13"
+             Stroke="#D1D5DB"
+             StrokeThickness="1.3"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center"/>
+
+                                                <Ellipse Width="4"
+             Height="4"
+             Fill="#D1D5DB"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center"/>
                                             </Grid>
 
                                             <StackPanel Grid.Column="1"
