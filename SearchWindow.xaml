@@ -281,30 +281,30 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <Grid Width="36" Height="36">
-                                                <Border Background="#2C2C2E"
+                                         <Grid Width="36" Height="36">
+    <Border Background="#2C2C2E"
             CornerRadius="5"/>
 
-                                                <Ellipse Width="26"
+    <Ellipse Width="26"
              Height="26"
              Stroke="#D1D5DB"
              StrokeThickness="1.5"
              HorizontalAlignment="Center"
              VerticalAlignment="Center"/>
 
-                                                <Ellipse Width="13"
+    <Ellipse Width="13"
              Height="13"
              Stroke="#D1D5DB"
              StrokeThickness="1.3"
              HorizontalAlignment="Center"
              VerticalAlignment="Center"/>
 
-                                                <Ellipse Width="4"
+    <Ellipse Width="4"
              Height="4"
              Fill="#D1D5DB"
              HorizontalAlignment="Center"
              VerticalAlignment="Center"/>
-                                            </Grid>
+</Grid>
 
                                             <StackPanel Grid.Column="1"
                                             VerticalAlignment="Center"
