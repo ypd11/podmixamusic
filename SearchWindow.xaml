@@ -5,7 +5,8 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="False"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        PreviewMouseWheel="Window_PreviewMouseWheel">
 
     <Window.Resources>
         <!-- Modern Search Box Template -->
@@ -140,18 +141,38 @@
                Visibility="Visible"/>
 
                 <Button x:Name="BackButton"
-        Content="‹  Back"
+        Content="Back"
         Click="BackToSearchResults_Click"
         Visibility="Collapsed"
-        HorizontalAlignment="Left"
+        HorizontalAlignment="Center"
         VerticalAlignment="Top"
         Background="Transparent"
-        Foreground="#0A84FF"
+        Foreground="White"
         BorderThickness="0"
-        FontSize="13"
-        FontWeight="SemiBold"
+        FontSize="11"
+        Padding="10,2"
         Cursor="Hand"
-        Padding="4,2"/>
+        Focusable="False">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="BtnBorder"
+                    Background="Transparent"
+                    CornerRadius="5"
+                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="BtnBorder"
+                            Property="Background"
+                            Value="#33FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
 
                 <ScrollViewer x:Name="ResultsScrollViewer"
               VerticalScrollBarVisibility="Auto"
