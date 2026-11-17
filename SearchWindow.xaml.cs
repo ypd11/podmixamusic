@@ -33,17 +33,13 @@ namespace WindowsShuffle
             LoadLibraryCache();
         }
 
-        //private void LoadLibraryCache()
-        //{
-        //    _libraryCache = main.playlist
-        //        .Where(File.Exists)
-        //        .Select((file, index) => CreatePathOnlyResult(file, index + 1))
-        //        .OrderBy(s => s.Title)
-        //        .ToList();
+        private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            ResultsScrollViewer.ScrollToVerticalOffset(
+                ResultsScrollViewer.VerticalOffset - e.Delta);
 
-        //    TxtNoResults.Text = "Search songs in current playlist";
-        //    TxtNoResults.Visibility = Visibility.Visible;
-        //}
+            e.Handled = true;
+        }
 
         private async void LoadLibraryCache()
         {
@@ -54,16 +50,38 @@ namespace WindowsShuffle
             {
                 var files = await main.GetLibraryAudioFilesAsync();
 
-                _libraryCache = await Task.Run(() =>
+                var validFiles = files
+    .Where(File.Exists)
+    .ToList();
+
+                var results = new SongResult[validFiles.Count];
+
+                await Task.Run(() =>
                 {
-                    return files
-                        .Where(File.Exists)
-                        .Select((file, index) =>
-                            LoadSongMetadataForIndex(
-                                CreatePathOnlyResult(file, index + 1)))
-                        .OrderBy(s => s.Title)
-                        .ToList();
+                    int maxThreads = Math.Max(
+                        2,
+                        Math.Min(Environment.ProcessorCount, 6));
+
+                    Parallel.For(
+                        0,
+                        validFiles.Count,
+                        new ParallelOptions
+                        {
+                            MaxDegreeOfParallelism = maxThreads
+                        },
+                        index =>
+                        {
+                            var fallback = CreatePathOnlyResult(
+                                validFiles[index],
+                                index + 1);
+
+                            results[index] = LoadSongMetadataForIndex(fallback);
+                        });
                 });
+
+                _libraryCache = results
+                    .OrderBy(s => s.Title)
+                    .ToList();
 
                 TxtNoResults.Text = _libraryCache.Count > 0
                     ? "Search songs, albums or artists"

@@ -73,6 +73,7 @@ namespace WindowsShuffle
         private readonly TagEditorService _tagEditorService = new TagEditorService();
 
         public List<string> playlist = new List<string>();
+        private List<string> _rootLibraryFiles = null;
         private string Root { get; set; } = null;
         private string PlaylistsPath => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PodmixMusic", "playlists");
         public List<int> shuffleOrder = new List<int>();
@@ -2494,12 +2495,22 @@ namespace WindowsShuffle
             return Task.Run(() => GetAudioFilesFromFolder(folder, searchOption));
         }
 
-        public Task<List<string>> GetLibraryAudioFilesAsync()
+        public async Task<List<string>> GetLibraryAudioFilesAsync()
         {
             if (string.IsNullOrWhiteSpace(Root) || !Directory.Exists(Root))
-                return Task.FromResult(new List<string>());
+                return new List<string>();
 
-            return GetAudioFilesFromFolderAsync(Root, SearchOption.AllDirectories);
+            // Reuse the root library scan when it is already available.
+            if (_rootLibraryFiles != null)
+                return _rootLibraryFiles.ToList();
+
+            var files = await GetAudioFilesFromFolderAsync(
+                Root,
+                SearchOption.AllDirectories);
+
+            _rootLibraryFiles = files;
+
+            return files.ToList();
         }
 
         private List<string> GetExistingAudioFiles(IEnumerable<string> files)
@@ -2596,13 +2607,22 @@ namespace WindowsShuffle
 
             ShowPlaylistLoading();
 
-            var rootFiles = await GetAudioFilesFromFolderAsync(Root, SearchOption.AllDirectories);
+            var rootFiles = await GetAudioFilesFromFolderAsync(
+                Root,
+                SearchOption.AllDirectories);
+
+            _rootLibraryFiles = rootFiles;
             return await ReplacePlaylistWithFiles(rootFiles, Root, autoPlayWhenEmpty);
         }
 
         private async Task<bool> ReplacePlaylistFromFolderOrRootAsync(string requestedFolder, SearchOption searchOption, bool autoPlayWhenEmpty = true)
         {
             var files = await GetAudioFilesFromFolderAsync(requestedFolder, searchOption);
+
+            if (IsSamePath(requestedFolder, Root) && searchOption == SearchOption.AllDirectories)
+            {
+                _rootLibraryFiles = files;
+            }
 
             if (files.Count > 0)
                 return await ReplacePlaylistWithFiles(files, requestedFolder, autoPlayWhenEmpty);
@@ -7644,33 +7664,70 @@ namespace WindowsShuffle
             _radioReconnectTimer.Start();
         }
 
+
+        private string ReadBassString(IntPtr pointer, out int bytesRead)
+        {
+            bytesRead = 0;
+
+            if (pointer == IntPtr.Zero)
+                return string.Empty;
+
+            const int MaxBytes = 64 * 1024;
+
+            List<byte> bytes = new List<byte>();
+
+            for (int i = 0; i < MaxBytes; i++)
+            {
+                byte value = Marshal.ReadByte(pointer, i);
+
+                if (value == 0)
+                    break;
+
+                bytes.Add(value);
+            }
+
+            bytesRead = bytes.Count;
+
+            try
+            {
+                return new UTF8Encoding(false, true).GetString(bytes.ToArray());
+            }
+            catch
+            {
+                return Encoding.GetEncoding(1252).GetString(bytes.ToArray());
+            }
+        }
         private string[] GetIcyTags(IntPtr icyPtr)
         {
             List<string> tags = new List<string>();
+
             if (icyPtr == IntPtr.Zero)
                 return tags.ToArray();
 
             int offset = 0;
 
-            // Safety bounds: a malformed/missing terminator used to spin this loop
-            // forever (freezing the UI) and the old code truncated the 64-bit pointer
-            // by converting it to an int.
             const int MaxTags = 256;
             const int MaxBytes = 64 * 1024;
 
             while (tags.Count < MaxTags && offset < MaxBytes)
             {
-                // Read each null-terminated string
-                string tag = Marshal.PtrToStringAnsi(IntPtr.Add(icyPtr, offset));
-                if (string.IsNullOrEmpty(tag))
+                int bytesRead;
+
+                string tag = ReadBassString(
+                    IntPtr.Add(icyPtr, offset),
+                    out bytesRead);
+
+                if (bytesRead == 0)
                     break;
 
                 tags.Add(tag);
-                offset += tag.Length + 1; // Move to the next string (including null terminator)
+
+                offset += bytesRead + 1;
             }
 
             return tags.ToArray();
         }
+
 
         private void CheckInitialMetadata(int handle, string stationName)
         {
@@ -7840,7 +7897,8 @@ namespace WindowsShuffle
                 if (tagsPtr == IntPtr.Zero)
                     return;
 
-                string meta = Marshal.PtrToStringAnsi(tagsPtr);
+                int metaBytesRead;
+                string meta = ReadBassString(tagsPtr, out metaBytesRead);
                 if (string.IsNullOrEmpty(meta))
                     return;
 
