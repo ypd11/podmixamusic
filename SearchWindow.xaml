@@ -139,8 +139,23 @@
                FontSize="13"
                Visibility="Visible"/>
 
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled">
+                <Button x:Name="BackButton"
+        Content="‹  Back"
+        Click="BackToSearchResults_Click"
+        Visibility="Collapsed"
+        HorizontalAlignment="Left"
+        VerticalAlignment="Top"
+        Background="Transparent"
+        Foreground="#0A84FF"
+        BorderThickness="0"
+        FontSize="13"
+        FontWeight="SemiBold"
+        Cursor="Hand"
+        Padding="4,2"/>
+
+                <ScrollViewer x:Name="ResultsScrollViewer"
+              VerticalScrollBarVisibility="Auto"
+              HorizontalScrollBarVisibility="Disabled">
 
                     <StackPanel x:Name="ResultsPanel">
 
@@ -159,7 +174,8 @@
                          Background="Transparent"
                          BorderThickness="0"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     MouseDoubleClick="ArtistResults_MouseDoubleClick">
 
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
@@ -220,7 +236,8 @@
                          Background="Transparent"
                          BorderThickness="0"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     MouseDoubleClick="AlbumResults_MouseDoubleClick">
 
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>

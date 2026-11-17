@@ -16,6 +16,9 @@ namespace WindowsShuffle
     {
         readonly MainWindow main;
         private List<SongResult> _libraryCache = new List<SongResult>();
+        private List<SearchGroupResult> _artistResultsCache = new List<SearchGroupResult>();
+        private List<SearchGroupResult> _albumResultsCache = new List<SearchGroupResult>();
+        private List<SongResult> _songResultsCache = new List<SongResult>();
         private int _searchVersion = 0;
         private const int MaxVisibleResults = 80;
 
@@ -137,41 +140,6 @@ namespace WindowsShuffle
             }
         }
 
-        //private async Task PerformSearch()
-        //{
-        //    string query = SearchInput.Text.ToLower().Trim();
-        //    if (string.IsNullOrEmpty(query)) return;
-
-        //    int searchVersion = ++_searchVersion;
-
-        //    ListResults.Items.Clear();
-        //    TxtNoResults.Visibility = Visibility.Collapsed;
-
-        //    // Fast in-memory search
-        //    var results = _libraryCache.Where(s =>
-        //        (s.FileName?.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0) ||
-        //        (s.Title?.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0) ||
-        //        (s.Artist?.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0) ||
-        //        (s.Album?.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
-        //    ).Take(MaxVisibleResults).ToList();
-
-        //    if (results.Any())
-        //    {
-        //        foreach (var item in results)
-        //        {
-        //            ListResults.Items.Add(item);
-        //        }
-
-        //        await EnrichVisibleResultsAsync(results, searchVersion);
-        //    }
-        //    else
-        //    {
-        //        TxtNoResults.Text = "Nothing found";
-        //        TxtNoResults.Visibility = Visibility.Visible;
-        //    }
-        //}
-
-
         private async Task PerformSearch()
         {
             string query = SearchInput.Text.Trim();
@@ -184,6 +152,9 @@ namespace WindowsShuffle
             ArtistResults.Items.Clear();
             AlbumResults.Items.Clear();
             ListResults.Items.Clear();
+
+            BackButton.Visibility = Visibility.Collapsed;
+            ResultsScrollViewer.Margin = new Thickness(0);
 
             ArtistsSection.Visibility = Visibility.Collapsed;
             AlbumsSection.Visibility = Visibility.Collapsed;
@@ -203,11 +174,20 @@ namespace WindowsShuffle
                 .Where(s => !string.IsNullOrWhiteSpace(s.Artist) &&
                             s.Artist != "Unknown Artist")
                 .GroupBy(s => s.Artist.Trim(), StringComparer.OrdinalIgnoreCase)
-                .Select(g => new SearchGroupResult
+                .Select(g =>
                 {
-                    Name = g.Key,
-                    Subtitle = g.Count() + (g.Count() == 1 ? " song" : " songs"),
-                    Tracks = g.ToList()
+                    var artistTracks = _libraryCache
+                        .Where(s => !string.IsNullOrWhiteSpace(s.Artist) &&
+                                    s.Artist.Trim().Equals(g.Key, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    return new SearchGroupResult
+                    {
+                        Name = g.Key,
+                        Subtitle = artistTracks.Count +
+                                   (artistTracks.Count == 1 ? " song" : " songs"),
+                        Tracks = artistTracks
+                    };
                 })
                 .OrderBy(a => a.Name)
                 .Take(30)
@@ -222,11 +202,22 @@ namespace WindowsShuffle
                     Album = s.Album.Trim(),
                     Artist = s.Artist.Trim()
                 })
-                .Select(g => new SearchGroupResult
+                .Select(g =>
                 {
-                    Name = g.Key.Album,
-                    Subtitle = g.Key.Artist,
-                    Tracks = g.ToList()
+                    var albumTracks = _libraryCache
+                        .Where(s =>
+                            !string.IsNullOrWhiteSpace(s.Album) &&
+                            s.Album.Trim().Equals(g.Key.Album, StringComparison.OrdinalIgnoreCase) &&
+                            (s.Artist ?? "Unknown Artist").Trim()
+                                .Equals(g.Key.Artist, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    return new SearchGroupResult
+                    {
+                        Name = g.Key.Album,
+                        Subtitle = g.Key.Artist,
+                        Tracks = albumTracks
+                    };
                 })
                 .OrderBy(a => a.Name)
                 .Take(30)
@@ -239,6 +230,10 @@ namespace WindowsShuffle
                     (s.FileName != null && s.FileName.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0))
                 .Take(MaxVisibleResults)
                 .ToList();
+
+            _artistResultsCache = artists;
+            _albumResultsCache = albums;
+            _songResultsCache = songs;
 
             foreach (var artist in artists)
                 ArtistResults.Items.Add(artist);
@@ -270,27 +265,69 @@ namespace WindowsShuffle
                 await EnrichVisibleResultsAsync(songs, searchVersion);
         }
 
+        private async void ArtistResults_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (ArtistResults.SelectedItem is SearchGroupResult selectedArtist)
+                await ShowGroupTracksAsync(selectedArtist);
+        }
 
-        //private async Task EnrichVisibleResultsAsync(List<SongResult> results, int searchVersion)
-        //{
-        //    foreach (var result in results.Where(r => !r.IsMetadataLoaded).ToList())
-        //    {
-        //        if (searchVersion != _searchVersion || !IsVisible)
-        //            return;
+        private async void AlbumResults_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (AlbumResults.SelectedItem is SearchGroupResult selectedAlbum)
+                await ShowGroupTracksAsync(selectedAlbum);
+        }
 
-        //        SongResult enriched = await Task.Run(() => LoadSongMetadata(result));
+        private async Task ShowGroupTracksAsync(SearchGroupResult group)
+        {
+            int searchVersion = ++_searchVersion;
 
-        //        if (searchVersion != _searchVersion || !IsVisible)
-        //            return;
+            ListResults.Items.Clear();
 
-        //        result.Title = enriched.Title;
-        //        result.Artist = enriched.Artist;
-        //        result.Album = enriched.Album;
-        //        result.Duration = enriched.Duration;
-        //        result.AlbumArt = enriched.AlbumArt;
-        //        result.IsMetadataLoaded = true;
-        //    }
-        //}
+            ArtistsSection.Visibility = Visibility.Collapsed;
+            AlbumsSection.Visibility = Visibility.Collapsed;
+            SongsSection.Visibility = Visibility.Visible;
+
+            TxtNoResults.Visibility = Visibility.Collapsed;
+
+            BackButton.Visibility = Visibility.Visible;
+            ResultsScrollViewer.Margin = new Thickness(0, 28, 0, 0);
+
+            foreach (var song in group.Tracks)
+                ListResults.Items.Add(song);
+
+            await EnrichVisibleResultsAsync(group.Tracks, searchVersion);
+        }
+
+        private void BackToSearchResults_Click(object sender, RoutedEventArgs e)
+        {
+            _searchVersion++;
+
+            ListResults.Items.Clear();
+            ArtistResults.Items.Clear();
+            AlbumResults.Items.Clear();
+
+            foreach (var artist in _artistResultsCache)
+                ArtistResults.Items.Add(artist);
+
+            foreach (var album in _albumResultsCache)
+                AlbumResults.Items.Add(album);
+
+            foreach (var song in _songResultsCache)
+                ListResults.Items.Add(song);
+
+            ArtistsSection.Visibility = _artistResultsCache.Count > 0
+                ? Visibility.Visible : Visibility.Collapsed;
+
+            AlbumsSection.Visibility = _albumResultsCache.Count > 0
+                ? Visibility.Visible : Visibility.Collapsed;
+
+            SongsSection.Visibility = _songResultsCache.Count > 0
+                ? Visibility.Visible : Visibility.Collapsed;
+
+            BackButton.Visibility = Visibility.Collapsed;
+            ResultsScrollViewer.Margin = new Thickness(0);
+            TxtNoResults.Visibility = Visibility.Collapsed;
+        }
 
         private async Task EnrichVisibleResultsAsync(List<SongResult> results, int searchVersion)
         {
