@@ -2494,6 +2494,14 @@ namespace WindowsShuffle
             return Task.Run(() => GetAudioFilesFromFolder(folder, searchOption));
         }
 
+        public Task<List<string>> GetLibraryAudioFilesAsync()
+        {
+            if (string.IsNullOrWhiteSpace(Root) || !Directory.Exists(Root))
+                return Task.FromResult(new List<string>());
+
+            return GetAudioFilesFromFolderAsync(Root, SearchOption.AllDirectories);
+        }
+
         private List<string> GetExistingAudioFiles(IEnumerable<string> files)
         {
             if (files == null) return new List<string>();
