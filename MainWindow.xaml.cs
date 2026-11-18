@@ -7059,7 +7059,7 @@ namespace WindowsShuffle
             return AddRadioStationDialogAction.Cancel;
         }
 
-        private void CopyRadioUrl_Click(object sender, RoutedEventArgs e)
+        private async void CopyRadioUrl_Click(object sender, RoutedEventArgs e)
         {
             if (!isRadioMode || string.IsNullOrWhiteSpace(currentFilePath))
             {
@@ -7067,10 +7067,10 @@ namespace WindowsShuffle
                 return;
             }
 
-            Clipboard.SetText(currentFilePath);
+            await CopyTextToClipboardAsync(currentFilePath);
         }
 
-        private void CopyRadioNowPlaying_Click(object sender, RoutedEventArgs e)
+        private async void CopyRadioNowPlaying_Click(object sender, RoutedEventArgs e)
         {
             if (!isRadioMode)
             {
@@ -7082,7 +7082,7 @@ namespace WindowsShuffle
                 ? TxtTitle.Text
                 : $"{TxtTitle.Text} - {TxtArtist.Text}";
 
-            Clipboard.SetText(nowPlaying);
+            await CopyTextToClipboardAsync(nowPlaying);
         }
 
         private void ShowRadioErrorMessage(string message)
@@ -7138,17 +7138,6 @@ namespace WindowsShuffle
                 default:
                     return RadioUnavailableAction.Dismiss;
             }
-        }
-
-        private Button CreateRadioUnavailableButton(string text, Action setAction, Window window)
-        {
-            var button = new Button { Content = text, MinWidth = 72, Height = 28, Margin = new Thickness(6, 0, 0, 0) };
-            button.Click += (s, e) =>
-            {
-                setAction();
-                window.DialogResult = true;
-            };
-            return button;
         }
 
         private void RemoveRadioFavorite(string url)
@@ -8026,6 +8015,25 @@ namespace WindowsShuffle
             catch (Exception ex)
             {
                 Debug.WriteLine($"Radio metadata callback failed: {ex.Message}");
+            }
+        }
+
+        private async Task CopyTextToClipboardAsync(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
+            try
+            {
+                System.Windows.Forms.Clipboard.SetText(
+                    text,
+                    System.Windows.Forms.TextDataFormat.UnicodeText);
+
+                Debug.WriteLine("WinForms clipboard succeeded.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Clipboard copy failed: {ex.Message}");
             }
         }
 
